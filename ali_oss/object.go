@@ -8,20 +8,17 @@
 package ali_oss
 
 import (
+	"bytes"
 	"errors"
 	"git.singularity-ai.com/backend/ws_service/library/log"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
-func DownloadObject(bClient *oss.Bucket, object string) ([]byte, error) {
-	if bClient == nil {
-		log.Errorln("bucket client is nil")
-		return nil, errors.New("bucket client is nil")
-	}
-	body, err := bClient.GetObject(object)
+func (b *Bucket) DownloadObject(object string) ([]byte, error) {
+	body, err := b.GetObject(object)
 	if err != nil {
 		log.Errorf("GetObject failed, err=%v", err.Error())
 		return nil, err
@@ -36,12 +33,7 @@ func DownloadObject(bClient *oss.Bucket, object string) ([]byte, error) {
 	return data, nil
 }
 
-func DownloadObjectToFile(bClient *oss.Bucket, object, file string) error {
-	if bClient == nil {
-		log.Errorln("bucket client is nil")
-		return errors.New("bucket client is nil")
-	}
-
+func (b *Bucket) DownloadObjectToFile(object, file string) error {
 	// check 文件是否已存在
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		//文件不存在则新建
@@ -52,7 +44,7 @@ func DownloadObjectToFile(bClient *oss.Bucket, object, file string) error {
 		}
 		defer fd.Close()
 
-		body, err := bClient.GetObject(object)
+		body, err := b.GetObject(object)
 		if err != nil {
 			log.Errorln("GetObject failed,err=%v", err.Error())
 			return err
@@ -61,7 +53,7 @@ func DownloadObjectToFile(bClient *oss.Bucket, object, file string) error {
 		body.Close()
 
 	} else {
-		err := bClient.GetObjectToFile(object, file)
+		err := b.GetObjectToFile(object, file)
 		if err != nil {
 			log.Errorln("GetObjectToFile failed,err=%v", err.Error())
 			return err
@@ -69,4 +61,34 @@ func DownloadObjectToFile(bClient *oss.Bucket, object, file string) error {
 	}
 
 	return nil
+}
+
+func (b *Bucket) UploadObject(object string, data []byte) (string, error) {
+	if b == nil {
+		log.Errorln("bucket client is nil")
+		return "", errors.New("bucket client is nil")
+	}
+	err := b.PutObject(object, bytes.NewReader(data))
+	if err != nil {
+		log.Errorf("PutObject failed, err=%v", err.Error())
+		return "", err
+	}
+	return b.GetObjectUrl(object), nil
+}
+
+func (b *Bucket) UploadObjectFromFile(object string, filePath string) (string, error) {
+	if b == nil {
+		log.Errorln("bucket client is nil")
+		return "", errors.New("bucket client is nil")
+	}
+	err := b.PutObjectFromFile(object, filePath)
+	if err != nil {
+		log.Errorf("PutObject failed, err=%v", err.Error())
+		return "", err
+	}
+	return b.GetObjectUrl(object), nil
+}
+
+func (b *Bucket) GetObjectUrl(object string) string {
+	return strings.Join([]string{b.Config.DomainName, object}, "/")
 }

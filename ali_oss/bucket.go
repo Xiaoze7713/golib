@@ -11,7 +11,15 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
-func NewBucketClient(client *oss.Client, bucket string) (*oss.Bucket, error) {
-	b, _ := client.Bucket(bucket)
-	return b, nil
+type Bucket struct {
+	Config *Config
+	*oss.Bucket
+}
+
+func BucketClient(client *oss.Client, config *Config) (*Bucket, error) {
+	if config == nil {
+		config = c
+	}
+	b, _ := client.Bucket(c.BucketName)
+	return &Bucket{config, b}, nil
 }
