@@ -12,11 +12,11 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
-func (b *Bucket) SignObjectURL(url, method string, expire int64, options ...oss.Option) (string, error) {
-	newUrl, err := b.SignURL(url, oss.HTTPMethod(method), expire, options...)
+func (b *Bucket) SignObjectURL(object, method string, expire int64, options ...oss.Option) (string, error) {
+	url, err := b.SignURL(object, oss.HTTPMethod(method), expire, options...)
 	if err != nil {
 		log.Errorf("SignURL failed,err=%v", err.Error())
 		return "", err
 	}
-	return newUrl, nil
+	return url, nil
 }

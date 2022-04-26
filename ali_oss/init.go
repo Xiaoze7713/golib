@@ -31,8 +31,9 @@ func Init(configFile string) error {
 		log.Infoln("ali_oss conf file not exist")
 		return err
 	}
+	c = &Config{}
 	if _, err := toml.DecodeFile(configFile, c); err != nil {
-		log.Errorln("ali_oss conf file not exist")
+		log.Errorln("decode conf file not exist")
 		return err
 	}
 	return nil

@@ -63,30 +63,30 @@ func (b *Bucket) DownloadObjectToFile(object, file string) error {
 	return nil
 }
 
-func (b *Bucket) UploadObject(object string, data []byte) (string, error) {
+func (b *Bucket) UploadObject(object string, data []byte) error {
 	if b == nil {
 		log.Errorln("bucket client is nil")
-		return "", errors.New("bucket client is nil")
+		return errors.New("bucket client is nil")
 	}
 	err := b.PutObject(object, bytes.NewReader(data))
 	if err != nil {
 		log.Errorf("PutObject failed, err=%v", err.Error())
-		return "", err
+		return err
 	}
-	return b.GetObjectUrl(object), nil
+	return nil
 }
 
-func (b *Bucket) UploadObjectFromFile(object string, filePath string) (string, error) {
+func (b *Bucket) UploadObjectFromFile(object string, filePath string) error {
 	if b == nil {
 		log.Errorln("bucket client is nil")
-		return "", errors.New("bucket client is nil")
+		return errors.New("bucket client is nil")
 	}
 	err := b.PutObjectFromFile(object, filePath)
 	if err != nil {
 		log.Errorf("PutObject failed, err=%v", err.Error())
-		return "", err
+		return err
 	}
-	return b.GetObjectUrl(object), nil
+	return nil
 }
 
 func (b *Bucket) GetObjectUrl(object string) string {
