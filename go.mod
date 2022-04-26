@@ -1,4 +1,4 @@
-module library
+module git.singularity-ai.com/backend/library
 
 go 1.18
 
