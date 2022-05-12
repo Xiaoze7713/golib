@@ -40,8 +40,8 @@ type EventMsg struct {
 	Timestamp int64       `json:"timestamp"`
 }
 
-// CreateWsEvent :长链建立事件消息Data，type=1
-type CreateWsEvent struct {
+// DefaultEventData 默认事件data结构
+type DefaultEventData struct {
 	UserID string `json:"user_id"`
 }
 
