@@ -16,9 +16,7 @@ import (
 	"git.singularity-ai.com/backend/library/arch/webserver"
 	"git.singularity-ai.com/backend/library/env"
 	"git.singularity-ai.com/backend/library/kafka"
-	logger "git.singularity-ai.com/backend/ws_service/library/log"
-	"git.singularity-ai.com/backend/ws_service/models/service"
-
+	logger "git.singularity-ai.com/backend/library/log"
 	//"git.singularity-ai.com/backend/ws_service/models/service"
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
@@ -189,7 +187,8 @@ func (app *App) InitService() {
 	redis.Init("")
 	mysql.Init("")
 	kafka.Init("")
-	service.InitToken()
+	//todo
+	//service.InitToken()
 	// todo 配置文件热加载
 }
 
@@ -199,5 +198,5 @@ func loadServicesFromFolder(confPath, idc string) error {
 
 // InitLog 初始化Log模块
 func (app *App) InitLog() {
-	logger.Init()
+	logger.Init("")
 }

@@ -9,7 +9,7 @@ package redis
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/ws_service/library/log"
+	"git.singularity-ai.com/backend/library/log"
 	"github.com/BurntSushi/toml"
 	rds "github.com/gomodule/redigo/redis"
 	"os"

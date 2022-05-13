@@ -9,7 +9,7 @@ package mysql
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/ws_service/library/log"
+	"git.singularity-ai.com/backend/library/log"
 	"github.com/BurntSushi/toml"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

@@ -9,9 +9,9 @@ package middlewares
 
 import (
 	"fmt"
+	"git.singularity-ai.com/backend/library/common"
+	"git.singularity-ai.com/backend/library/env"
 	"git.singularity-ai.com/backend/library/log"
-	"git.singularity-ai.com/backend/ws_service/library/arch/env"
-	"git.singularity-ai.com/backend/ws_service/library/common"
 	"github.com/gin-gonic/gin"
 	"os"
 	"strconv"
