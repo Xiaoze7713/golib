@@ -17,6 +17,8 @@ import (
 	"git.singularity-ai.com/backend/library/env"
 	"git.singularity-ai.com/backend/library/kafka"
 	logger "git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/service"
+
 	//"git.singularity-ai.com/backend/ws_service/models/service"
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
@@ -187,8 +189,7 @@ func (app *App) InitService() {
 	redis.Init("")
 	mysql.Init("")
 	kafka.Init("")
-	//todo
-	//service.InitToken()
+	service.Init("")
 	// todo 配置文件热加载
 }
 
