@@ -36,6 +36,8 @@ type Consumer struct {
 	Closer      context.CancelFunc
 }
 
+var defaultKafkaConfigPath = "conf/service/kafka.toml"
+
 var configs map[string]KafkaConfig
 
 var producers sync.Map
@@ -50,7 +52,7 @@ var consumers sync.Map
 func Init(filePath string) {
 	var config map[string]KafkaConfig
 	if filePath == "" {
-		filePath = "conf/service/kafka.toml"
+		filePath = defaultKafkaConfigPath
 	}
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		log.Infoln("kafka.toml not exist")
