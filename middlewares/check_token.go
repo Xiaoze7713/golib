@@ -19,7 +19,6 @@ func CheckToken() gin.HandlerFunc {
 		//前置校验
 		t := c.GetHeader("Token")
 		if t == "" {
-			log.Info("no token")
 			return
 		}
 		data, err := token.VerifyToken(t)

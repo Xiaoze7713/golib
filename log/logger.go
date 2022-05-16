@@ -10,11 +10,9 @@ package log
 import (
 	"fmt"
 	"git.singularity-ai.com/backend/library/env"
-	"git.singularity-ai.com/backend/ws_service/library/common"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -39,7 +37,7 @@ func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	} else {
 		file = env.AppName() + strings.Replace(file, env.RootPath(), "", 1)
 	}
-	msg := fmt.Sprintf("%s: %s %s:%d goid[%d] %s\n", strings.ToUpper(entry.Level.String()), timestamp, file, len, common.GetGID(), entry.Message)
+	msg := fmt.Sprintf("%s: %s %s:%d %s\n", strings.ToUpper(entry.Level.String()), timestamp, file, len, entry.Message)
 	return []byte(msg), nil
 }
 
@@ -61,7 +59,7 @@ func NewLogger(config LogConfig, suffix string) *logrus.Logger {
 			os.Stdout}
 		//同时写文件和屏幕
 		fileAndStdoutWriter := io.MultiWriter(writers...)
-		log.SetOutput(fileAndStdoutWriter)
+		logger.Out = fileAndStdoutWriter
 	} else {
 		logger.Out = w
 	}

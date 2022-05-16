@@ -46,12 +46,14 @@ func Init(filePath string) {
 		env.SetAppName(config.AppName)
 	}
 
-	loggerWf = &Logger{
-		NewLogger(config, ".wf"),
-	}
 	loggerDef = &Logger{
 		NewLogger(config, ""),
 	}
+
+	loggerWf = &Logger{
+		NewLogger(config, ".wf"),
+	}
+
 }
 
 func initLogDir(path string) error {
