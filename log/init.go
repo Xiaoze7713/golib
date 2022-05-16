@@ -42,7 +42,7 @@ func Init(filePath string) {
 	}
 	// 初始化日志目录
 	initLogDir(env.LogRootPath())
-	if env.AppName() == "" {
+	if env.AppName() == "unknown" {
 		env.SetAppName(config.AppName)
 	}
 

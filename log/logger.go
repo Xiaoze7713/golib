@@ -42,6 +42,10 @@ func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func NewLogger(config LogConfig, suffix string) *logrus.Logger {
+
+	if env.AppName() == "unknown" {
+		env.SetAppName(config.AppName)
+	}
 	//日志目录
 	path := env.LogRootPath()
 	//日志文件
@@ -85,6 +89,32 @@ func NewWriter(path string, rotationTime time.Duration, maxNums int) *rotatelogs
 	return writer
 }
 
+var defaultLoggerConfig = LogConfig{
+	"singularity",
+	1,
+	48,
+	"warn",
+	false,
+}
+
 func GetDefaultLogger() *Logger {
+	if loggerDef == nil {
+		// 初始化日志目录
+		initLogDir(env.LogRootPath())
+		loggerDef = &Logger{
+			NewLogger(defaultLoggerConfig, ""),
+		}
+	}
 	return loggerDef
+}
+
+func GetWfLogger() *Logger {
+	if loggerWf == nil {
+		// 初始化日志目录
+		initLogDir(env.LogRootPath())
+		loggerWf = &Logger{
+			NewLogger(defaultLoggerConfig, "wf"),
+		}
+	}
+	return loggerWf
 }

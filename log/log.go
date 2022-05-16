@@ -12,23 +12,23 @@ import (
 )
 
 func Tracef(format string, args ...interface{}) {
-	loggerDef.l.Logf(logrus.TraceLevel, format, args...)
+	GetDefaultLogger().l.Logf(logrus.TraceLevel, format, args...)
 }
 
 func Debugf(format string, args ...interface{}) {
-	loggerDef.l.Logf(logrus.DebugLevel, format, args...)
+	GetDefaultLogger().l.Logf(logrus.DebugLevel, format, args...)
 }
 
 func Infof(format string, args ...interface{}) {
-	loggerDef.l.Logf(logrus.InfoLevel, format, args...)
+	GetDefaultLogger().l.Logf(logrus.InfoLevel, format, args...)
 }
 
 func Printf(format string, args ...interface{}) {
-	loggerDef.l.Printf(format, args)
+	GetDefaultLogger().l.Printf(format, args)
 }
 
 func Warnf(format string, args ...interface{}) {
-	loggerWf.l.Logf(logrus.WarnLevel, format, args...)
+	GetWfLogger().l.Logf(logrus.WarnLevel, format, args...)
 }
 
 func Warningf(format string, args ...interface{}) {
@@ -36,36 +36,36 @@ func Warningf(format string, args ...interface{}) {
 }
 
 func Errorf(format string, args ...interface{}) {
-	loggerWf.l.Logf(logrus.ErrorLevel, format, args...)
+	GetWfLogger().l.Logf(logrus.ErrorLevel, format, args...)
 }
 
 func Fatalf(format string, args ...interface{}) {
-	loggerWf.l.Logf(logrus.FatalLevel, format, args...)
+	GetWfLogger().l.Logf(logrus.FatalLevel, format, args...)
 	//logger.Exit(1)
 }
 
 func Panicf(format string, args ...interface{}) {
-	loggerWf.l.Logf(logrus.PanicLevel, format, args...)
+	GetWfLogger().l.Logf(logrus.PanicLevel, format, args...)
 }
 
 func Trace(args ...interface{}) {
-	loggerDef.l.Log(logrus.TraceLevel, args...)
+	GetDefaultLogger().l.Log(logrus.TraceLevel, args...)
 }
 
 func Debug(args ...interface{}) {
-	loggerDef.l.Log(logrus.DebugLevel, args...)
+	GetDefaultLogger().l.Log(logrus.DebugLevel, args...)
 }
 
 func Info(args ...interface{}) {
-	loggerDef.l.Log(logrus.InfoLevel, args...)
+	GetDefaultLogger().l.Log(logrus.InfoLevel, args...)
 }
 
 func Print(args ...interface{}) {
-	loggerDef.l.Print(args)
+	GetDefaultLogger().l.Print(args)
 }
 
 func Warn(args ...interface{}) {
-	loggerWf.l.Log(logrus.WarnLevel, args...)
+	GetWfLogger().l.Log(logrus.WarnLevel, args...)
 }
 
 func Warning(args ...interface{}) {
@@ -73,36 +73,36 @@ func Warning(args ...interface{}) {
 }
 
 func Error(args ...interface{}) {
-	loggerWf.l.Log(logrus.ErrorLevel, args...)
+	GetWfLogger().l.Log(logrus.ErrorLevel, args...)
 }
 
 func Fatal(args ...interface{}) {
-	loggerWf.l.Log(logrus.FatalLevel, args...)
+	GetWfLogger().l.Log(logrus.FatalLevel, args...)
 	//logger.Exit(1)
 }
 
 func Panic(args ...interface{}) {
-	loggerWf.l.Log(logrus.PanicLevel, args...)
+	GetWfLogger().l.Log(logrus.PanicLevel, args...)
 }
 
 func Traceln(args ...interface{}) {
-	loggerDef.l.Logln(logrus.TraceLevel, args...)
+	GetDefaultLogger().l.Logln(logrus.TraceLevel, args...)
 }
 
 func Debugln(args ...interface{}) {
-	loggerDef.l.Logln(logrus.DebugLevel, args...)
+	GetDefaultLogger().l.Logln(logrus.DebugLevel, args...)
 }
 
 func Infoln(args ...interface{}) {
-	loggerDef.l.Logln(logrus.InfoLevel, args...)
+	GetDefaultLogger().l.Logln(logrus.InfoLevel, args...)
 }
 
 func Println(args ...interface{}) {
-	loggerDef.l.Println(args)
+	GetDefaultLogger().l.Println(args)
 }
 
 func Warnln(args ...interface{}) {
-	loggerWf.l.Logln(logrus.WarnLevel, args...)
+	GetWfLogger().l.Logln(logrus.WarnLevel, args...)
 }
 
 func Warningln(args ...interface{}) {
@@ -110,14 +110,14 @@ func Warningln(args ...interface{}) {
 }
 
 func Errorln(args ...interface{}) {
-	loggerWf.l.Logln(logrus.ErrorLevel, args...)
+	GetWfLogger().l.Logln(logrus.ErrorLevel, args...)
 }
 
 func Fatalln(args ...interface{}) {
-	loggerWf.l.Logln(logrus.FatalLevel, args...)
+	GetWfLogger().l.Logln(logrus.FatalLevel, args...)
 	//logger.Exit(1)
 }
 
 func Panicln(args ...interface{}) {
-	loggerWf.l.Logln(logrus.PanicLevel, args...)
+	GetWfLogger().l.Logln(logrus.PanicLevel, args...)
 }
