@@ -7,7 +7,9 @@
  */
 package service
 
+import "git.singularity-ai.com/backend/library/service/token"
+
 // todo 待完善
 func Init(configPath string) {
-	InitToken("")
+	token.InitToken("")
 }

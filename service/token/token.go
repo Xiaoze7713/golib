@@ -5,7 +5,7 @@
  * @Version: 1.0.0
  * @Date: 2022/4/20 2:05 PM
  */
-package service
+package token
 
 import (
 	"bytes"

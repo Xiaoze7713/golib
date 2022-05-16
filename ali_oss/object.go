@@ -10,7 +10,7 @@ package ali_oss
 import (
 	"bytes"
 	"errors"
-	"git.singularity-ai.com/backend/ws_service/library/log"
+	"git.singularity-ai.com/backend/library/log"
 	"io"
 	"io/ioutil"
 	"os"

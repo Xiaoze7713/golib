@@ -45,10 +45,10 @@ var consumers sync.Map
 
 // Init
 //	配置文件格式示例：
-//	[receive_ws]
-//	name = "receive_ws"
+//	[event]
+//	name = "event"
 //	broker = "172.21.77.44:19092"
-//	topic = "receive_ws_msg"
+//	topic = "event_service"
 func Init(filePath string) {
 	var config map[string]KafkaConfig
 	if filePath == "" {

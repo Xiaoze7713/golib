@@ -9,7 +9,7 @@ package middlewares
 
 import (
 	"git.singularity-ai.com/backend/library/log"
-	"git.singularity-ai.com/backend/library/service"
+	"git.singularity-ai.com/backend/library/service/token"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,14 +17,14 @@ func CheckToken() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		//前置校验
-		token := c.GetHeader("Token")
-		if token == "" {
+		t := c.GetHeader("Token")
+		if t == "" {
 			log.Info("no token")
 			return
 		}
-		data, err := service.VerifyToken(token)
+		data, err := token.VerifyToken(t)
 		if err != nil {
-			log.Errorf("read token data failed %s,token=%s", err.Error(), token)
+			log.Errorf("read token data failed %s,token=%s", err.Error(), t)
 			return
 		}
 		c.Set("userID", data.UserId)

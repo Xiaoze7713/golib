@@ -8,7 +8,7 @@
 package ali_oss
 
 import (
-	"git.singularity-ai.com/backend/ws_service/library/log"
+	"git.singularity-ai.com/backend/library/log"
 	"github.com/BurntSushi/toml"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"os"
