@@ -3,7 +3,6 @@ module git.singularity-ai.com/backend/library
 go 1.18
 
 require (
-	git.singularity-ai.com/backend/ws_service v0.0.0-20220422074632-664c51742a1b
 	github.com/BurntSushi/toml v1.1.0
 	github.com/DeanThompson/ginpprof v0.0.0-20201112072838-007b1e56b2e1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.2+incompatible
