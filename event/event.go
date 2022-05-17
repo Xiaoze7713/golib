@@ -24,9 +24,13 @@ const (
 	TypeVideoHeart = 1002 //视频心跳事件
 	TypeVideoEnd   = 1003 //视频结束事件
 
-	SystemTask  = 2000
-	TypeChat    = 2001 //与AI聊天事件
-	TypeCommont = 2002 //评论AI事件
+	SystemTask = 2000
+
+	SystemAppTrans = 3000 //app透传
+
+	SystemAppFeatures = 4000 //app功能api
+	TypeSendImMessage = 4002
+	TypeMarkMessage   = 4003
 )
 
 const EventKafkaTopic = "event"
