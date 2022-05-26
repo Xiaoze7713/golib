@@ -144,7 +144,7 @@ func (app *App) InitWithConfig(config *AppConfig) *App {
 // DefaultWebServerMiddlewares 默认的Http Server中间件
 // todo:多加一个recovery来保证业务日志崩溃后依旧有访问日志
 var DefaultWebServerMiddlewares = []gin.HandlerFunc{
-	gin.Logger(),
+	//gin.Logger(),
 	gin.Recovery(),
 }
 

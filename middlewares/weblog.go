@@ -8,11 +8,13 @@
 package middlewares
 
 import (
+	"bytes"
 	"fmt"
 	"git.singularity-ai.com/backend/library/common"
 	"git.singularity-ai.com/backend/library/env"
 	"git.singularity-ai.com/backend/library/log"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -29,6 +31,9 @@ func WebLogger() gin.HandlerFunc {
 		// traceID
 		traceID := GenLogIDFromRequest(c)
 		c.Set("traceID", traceID)
+
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
 
 		// 处理请求
 		c.Next()
@@ -87,8 +92,8 @@ func WebLogger() gin.HandlerFunc {
 		}
 
 		//日志格式
-		msg := fmt.Sprintf("traceid[%s] sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] cookie[%s] form[%s] errno[%d] errmsg[%s]",
-			traceID, startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, cookie, form, errno.(int), errmsg)
+		msg := fmt.Sprintf("traceid[%s] sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] cookie[%s] body[%s] form[%s] errno[%d] errmsg[%s]",
+			traceID, startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, cookie, string(body), form, errno.(int), errmsg)
 
 		if statusCode > 499 {
 			log.Error(msg)

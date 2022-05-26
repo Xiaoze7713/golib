@@ -105,6 +105,25 @@ func Set(key, value string, ttl int64) error {
 	return err
 }
 
+func SetNx(key, value string, ttl int64) (interface{}, error) {
+
+	conn := client.C.Get()
+	defer func(conn rds.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Printf("close conn err=%v", err)
+		}
+	}(conn)
+	var err error
+	var resp interface{}
+	if ttl > 0 {
+		resp, err = conn.Do("SET", key, value, "EX", ttl, "NX")
+	} else {
+		resp, err = conn.Do("SET", key, value, "NX")
+	}
+	return resp, err
+}
+
 func Del(key string) error {
 	conn := client.C.Get()
 	defer func(conn rds.Conn) {
@@ -135,7 +154,7 @@ func Incr(key string) (int64, error) {
 	return reply.(int64), err
 }
 
-func Incrby(key string) (int64, error) {
+func Incrby(key string, num int) (int64, error) {
 	conn := client.C.Get()
 	defer func(conn rds.Conn) {
 		err := conn.Close()
@@ -143,7 +162,7 @@ func Incrby(key string) (int64, error) {
 			log.Fatalf("close conn err=%v", err)
 		}
 	}(conn)
-	reply, err := conn.Do("INCRBY", key)
+	reply, err := conn.Do("INCRBY", key, num)
 	if err != nil {
 		log.Fatalf("Incrby err=%v", err)
 	}
