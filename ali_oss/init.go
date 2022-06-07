@@ -23,7 +23,8 @@ type Config struct {
 	BucketName       string `toml:"bucket_name"`
 }
 
-var c *Config
+var config *Config
+var client *oss.Client
 
 // Init 根据配置文件初始化
 func Init(configFile string) error {
@@ -31,24 +32,34 @@ func Init(configFile string) error {
 		log.Infoln("ali_oss conf file not exist")
 		return err
 	}
-	c = &Config{}
-	if _, err := toml.DecodeFile(configFile, c); err != nil {
+	config = &Config{}
+	if _, err := toml.DecodeFile(configFile, config); err != nil {
 		log.Errorln("decode conf file not exist")
 		return err
 	}
 	return nil
 }
 
-func Client(configFile string) (*oss.Client, error) {
-	if c == nil {
+func GetConfig(configFile string) (*Config, error) {
+	if config == nil {
 		if err := Init(configFile); err != nil {
 			return nil, err
 		}
 	}
-	client, err := oss.New(c.EndPoint, c.AccessKeyID, c.AccessKeySecret)
-	if err != nil {
-		log.Errorf("new oss client failed,err=%s", err.Error())
-		return nil, err
+	return config, nil
+}
+
+func Client(configFile string) (*oss.Client, error) {
+	if client == nil {
+		c, err := GetConfig(configFile)
+		if err != nil {
+			return nil, err
+		}
+		client, err = oss.New(c.EndPoint, c.AccessKeyID, c.AccessKeySecret)
+		if err != nil {
+			log.Errorf("new oss client failed,err=%s", err.Error())
+			return nil, err
+		}
 	}
 	return client, nil
 }

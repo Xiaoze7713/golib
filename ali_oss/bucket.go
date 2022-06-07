@@ -16,9 +16,9 @@ type Bucket struct {
 	*oss.Bucket
 }
 
-func BucketClient(client *oss.Client, config *Config) (*Bucket, error) {
-	if config == nil {
-		config = c
+func BucketClient(client *oss.Client, c *Config) (*Bucket, error) {
+	if c == nil {
+		c = config
 	}
 	b, _ := client.Bucket(c.BucketName)
 	return &Bucket{config, b}, nil
