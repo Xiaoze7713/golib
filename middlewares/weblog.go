@@ -24,6 +24,12 @@ import (
 func WebLogger() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
+
+		// 请求路由
+		reqUri := c.Request.RequestURI
+		if reqUri == "/metrics" {
+			return
+		}
 		// 开始时间
 		start := time.Now()
 		startTime := start.Format("2006-01-02 15:04:05")
@@ -46,9 +52,6 @@ func WebLogger() gin.HandlerFunc {
 
 		// 请求方式
 		reqMethod := c.Request.Method
-
-		// 请求路由
-		reqUri := c.Request.RequestURI
 
 		// 状态码
 		statusCode := c.Writer.Status()

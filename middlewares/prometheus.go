@@ -22,14 +22,12 @@ const (
 )
 
 var (
-	// httpHistogram prometheus 模型
-	httpHistogramCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	httpHistogramCostGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "service",
 		Subsystem:   "",
-		Name:        "cost",
+		Name:        "costVer",
 		Help:        "Histogram of response latency (Milliseconds) of http handlers.",
 		ConstLabels: nil,
-		Buckets:     prometheus.LinearBuckets(100, 300, 5),
 	}, []string{"idc", "code", "uri"})
 	httpHistogramCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "service",
@@ -38,18 +36,11 @@ var (
 		Help:        "Histogram of response count of http handlers.",
 		ConstLabels: nil,
 	}, []string{"idc", "code", "errno", "uri"})
-	/*httpHistogramErrNo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   "service",
-		Subsystem:   "",
-		Name:        "errno",
-		Help:        "Histogram of response errno of http handlers.",
-		ConstLabels: nil,
-	}, []string{"idc", "code", "uri"})*/
 )
 
 // init 初始化prometheus模型
 func init() {
-	prometheus.MustRegister(httpHistogramCost, httpHistogramCount)
+	prometheus.MustRegister(httpHistogramCount, httpHistogramCostGauge)
 }
 
 // handlerPath 定义采样路由struct
@@ -137,11 +128,11 @@ func (gp *GinPrometheus) Middleware() gin.HandlerFunc {
 		end := time.Now()
 		// 执行时间
 		cost := end.Sub(start)
-		httpHistogramCost.WithLabelValues(
+		httpHistogramCostGauge.WithLabelValues(
 			env.IDC(),
 			strconv.Itoa(c.Writer.Status()),
-			c.Request.RequestURI,
-		).Observe(float64(cost.Milliseconds()))
+			c.Request.URL.Path,
+		).Set(float64(cost.Milliseconds()))
 
 		errno, isExit := c.Get("errno")
 		if !isExit {
@@ -151,7 +142,7 @@ func (gp *GinPrometheus) Middleware() gin.HandlerFunc {
 			env.IDC(),
 			strconv.Itoa(c.Writer.Status()),
 			strconv.Itoa(errno.(int)),
-			c.Request.RequestURI,
+			c.Request.URL.Path,
 		).Inc()
 	}
 }
