@@ -22,6 +22,7 @@ const (
 	ErrServiceCheckCallChain     = 100008 // 调用链出错
 
 	// 权限相关
+	ErrTokenError      = 10001  //Token异常，请重新登录
 	ErrIllegalSource   = 100009 // 来源非法
 	ErrOnlyInner       = 100010 // 只允许内网访问
 	ErrIllegalPerm     = 100011 // 权限不足

@@ -79,7 +79,7 @@ func VerifyToken(token string) (TokenData, error) {
 	var respBody TokenResp
 	json.Unmarshal(b, &respBody)
 	if respBody.Code != 200 {
-		log.Errorf("Verify Token failed, errno:%v,errmsg:%v", respBody.Code, respBody.CodeMsg)
+		log.Warnf("Verify Token failed, errno:%v,errmsg:%v", respBody.Code, respBody.CodeMsg)
 		return TokenData{}, errors.New(respBody.CodeMsg)
 	}
 	return respBody.RespData, nil
