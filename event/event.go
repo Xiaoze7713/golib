@@ -18,6 +18,7 @@ const (
 	SystemDefault = 0
 	TypeCreateWs  = 1 //长链建立事件
 	TypeLoginIn   = 2 //用户登录事件
+	TypeCloseWs   = 3 //长链断开事件
 
 	SystemVideo    = 1000
 	TypeVideoStart = 1001 //用户建立RTC连接,开始视频
