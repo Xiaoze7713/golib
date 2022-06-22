@@ -71,6 +71,8 @@ func WebLogger() gin.HandlerFunc {
 		// 服务器所处机房
 		idc := env.IDC()
 
+		header := c.Request.Header
+
 		//cookie
 		cookies := c.Request.Cookies()
 		vs := make([]string, 0, len(cookies))
@@ -95,8 +97,8 @@ func WebLogger() gin.HandlerFunc {
 		}
 
 		//日志格式
-		msg := fmt.Sprintf("traceid[%s] sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] cookie[%s] body[%s] form[%s] errno[%d] errmsg[%s]",
-			traceID, startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, cookie, string(body), form, errno.(int), errmsg)
+		msg := fmt.Sprintf("traceid[%s] sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] header[%v] cookie[%s] body[%s] form[%s] errno[%d] errmsg[%s]",
+			traceID, startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, header, cookie, string(body), form, errno.(int), errmsg)
 
 		if statusCode > 499 {
 			log.Error(msg)
