@@ -8,131 +8,38 @@
 package redis
 
 import (
-	"fmt"
-	"git.singularity-ai.com/backend/library/log"
-	"github.com/BurntSushi/toml"
 	rds "github.com/gomodule/redigo/redis"
-	"os"
+
+	"git.singularity-ai.com/backend/library/log"
 )
 
-type Client struct {
-	C *rds.Pool
-}
-
-type Config struct {
-	Host     string `toml:"host"`
-	Port     string `toml:"port"`
-	Password string `toml:"password"`
-	DBNumber int64  `toml:"db_no"`
-}
-
-var defaultRedisConfigPath = "conf/service/redis.toml"
-
-var client *Client
-
-func Init(filePath string) error {
-	var config Config
-	if filePath == "" {
-		filePath = defaultRedisConfigPath
-	}
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Println("redis.toml not exist")
-		return nil
-	}
-	if _, err := toml.DecodeFile(filePath, &config); err != nil {
-		panic(fmt.Sprintf("Can't load config file, %s", err.Error()))
-	}
-	rdsPool := &rds.Pool{
-		MaxIdle:   20,
-		MaxActive: 100,
-		Dial: func() (rds.Conn, error) {
-			c, err := rds.Dial("tcp", config.Host)
-			if err != nil {
-				return nil, err
-			}
-			if config.Password != "" {
-				if _, err := c.Do("AUTH", config.Password); err != nil {
-					c.Close()
-					return nil, err
-				}
-			}
-			if config.DBNumber > 0 {
-				if _, err := c.Do("SELECT", config.DBNumber); err != nil {
-					c.Close()
-					return nil, err
-				}
-			}
-			return c, nil
-		},
-	}
-	client = &Client{
-		C: rdsPool,
-	}
-	return nil
-}
-
 func Get(key string) (string, error) {
-
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	value, err := conn.Do("GET", key)
-	if err != nil || value == nil {
-		return "", err
-	}
-	return string(value.([]uint8)), nil
+	return sampleDoString("GET", key)
 }
 
 func Set(key, value string, ttl int64) error {
-
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Printf("close conn err=%v", err)
-		}
-	}(conn)
 	var err error
 	if ttl > 0 {
-		_, err = conn.Do("SET", key, value, "EX", ttl)
+		_, err = sampleDo("SET", key, value, "EX", ttl)
 	} else {
-		_, err = conn.Do("SET", key, value)
+		_, err = sampleDo("SET", key, value)
 	}
 	return err
 }
 
 func SetNx(key, value string, ttl int64) (interface{}, error) {
-
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Printf("close conn err=%v", err)
-		}
-	}(conn)
 	var err error
 	var resp interface{}
 	if ttl > 0 {
-		resp, err = conn.Do("SET", key, value, "EX", ttl, "NX")
+		resp, err = sampleDo("SET", key, value, "EX", ttl, "NX")
 	} else {
-		resp, err = conn.Do("SET", key, value, "NX")
+		resp, err = sampleDo("SET", key, value, "NX")
 	}
 	return resp, err
 }
 
 func Del(key string) error {
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	_, err := conn.Do("DEL", key)
+	_, err := sampleDo("DEL", key)
 	if err != nil {
 		log.Fatalf("Del err=%v", err)
 	}
@@ -140,33 +47,11 @@ func Del(key string) error {
 }
 
 func Incr(key string) (int64, error) {
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	reply, err := conn.Do("INCR", key)
-	if err != nil {
-		log.Fatalf("Incr err=%v", err)
-	}
-	return reply.(int64), err
+	return sampleDoInt64("INCR", key)
 }
 
 func Incrby(key string, num int) (int64, error) {
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	reply, err := conn.Do("INCRBY", key, num)
-	if err != nil {
-		log.Fatalf("Incrby err=%v", err)
-	}
-	return reply.(int64), err
+	return sampleDoInt64("INCRBY", key, num)
 }
 
 // Expire
@@ -184,15 +69,7 @@ func Expire(key string, ttl int) (interface{}, error) {
 		params = append(params, ttl)
 	}
 
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-
-	value, err := conn.Do(method, params...)
+	value, err := sampleDo(method, params...)
 	if err != nil {
 		return "", err
 	}
@@ -201,28 +78,52 @@ func Expire(key string, ttl int) (interface{}, error) {
 }
 
 func Rpush(queue, value string) error {
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	_, err := conn.Do("RPUSH", queue, value)
+	_, err := sampleDo("RPUSH", queue, value)
 	return err
 }
 
 func Lpop(queue string) (string, error) {
-	conn := client.C.Get()
-	defer func(conn rds.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("close conn err=%v", err)
-		}
-	}(conn)
-	value, err := conn.Do("LPOP", queue)
-	if err != nil || value == nil {
-		return "", err
+	return sampleDoString("LPOP", queue)
+}
+
+func HSet(key, field, value string) error {
+	var err error
+	_, err = sampleDo("HSET", key, field, value)
+	return err
+}
+
+func HGet(key, field string) (string, error) {
+	return sampleDoString("HGET", key, field)
+}
+
+func HDel(key string, field string) (string, error) {
+	return sampleDoString("HDEL", key, field)
+}
+
+func SAdd(key string, data []string) error {
+	var params []interface{}
+	params = append(params, key)
+	for _, value := range data {
+		params = append(params, value)
 	}
-	return string(value.([]uint8)), nil
+	_, err := sampleDo("SADD", params...)
+	return err
+}
+
+func SIsMember(key string, value string) (int, error) {
+	return sampleDoInt("SISMEMBER", key, value)
+}
+
+func SMembers(key string) ([]string, error) {
+	return rds.Strings(sampleDo("SMEMBERS", key))
+}
+
+func SRem(key string, data []string) error {
+	var params []interface{}
+	params = append(params, key)
+	for _, value := range data {
+		params = append(params, value)
+	}
+	_, err := sampleDo("SREM", params...)
+	return err
 }
