@@ -252,10 +252,9 @@ func HttpIntercept(h http.Handler) http.Handler {
 		ctx.Store(HttpMethod, r.RequestURI)
 		ctx.Store(HttpPath, r.URL.Path)
 		// 读body
-		var body []byte
-		n, _ := r.Body.Read(body)
+		body, _ := ioutil.ReadAll(r.Body)
 		bodyStr := string(body)
-		ctx.Store(ReqBodyLen, n)
+		ctx.Store(ReqBodyLen, len(body))
 		ctx.Store(ReqBody, bodyStr)
 		// 写回
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
@@ -305,10 +304,9 @@ func DoRequest() gin.HandlerFunc {
 		ctx.Store(HttpMethod, gc.Request.Method)
 		ctx.Store(HttpPath, gc.Request.URL.Path)
 		ctx.Store(UserAgent, gc.Request.UserAgent())
-		var body []byte
-		n, _ := gc.Request.Body.Read(body)
+		body, _ := ioutil.ReadAll(gc.Request.Body)
 		bodyStr := string(body)
-		ctx.Store(ReqBodyLen, n)
+		ctx.Store(ReqBodyLen, len(bodyStr))
 		ctx.Store(ReqBody, bodyStr)
 		// 写回
 		gc.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
