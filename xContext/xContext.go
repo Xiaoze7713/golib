@@ -113,8 +113,18 @@ func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XCo
 		xCtx = NewXContextWithContext(ctx, operationName)
 		return xCtx, nil
 	}
-	xCtx.Context = ctx
-	return xCtx, nil
+	return xCtx.CopyWithContext(ctx), nil
+}
+
+func (x *XContext) CopyWithContext(ctx context.Context) *XContext {
+	return &XContext{
+		Context:       ctx,
+		LoggerIF:      x.LoggerIF,
+		MetricsIF:     x.MetricsIF,
+		Span:          x.Span,
+		CancelList:    nil,
+		operationName: x.operationName,
+	}
 }
 
 func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
