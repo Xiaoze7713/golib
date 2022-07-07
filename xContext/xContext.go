@@ -46,16 +46,19 @@ func Init(logger xlog_base2.LoggerIF,
 	if logger != nil {
 		xLogger = logger
 	} else {
+		fmt.Printf("warning! not set logger")
 		xLogger = null_log.LoggerNull{}
 	}
 	if trace != nil {
 		xTrace = trace
 	} else {
+		fmt.Printf("warning! not set trace")
 		xTrace = xtrace_base.XTraceNoop{}
 	}
 	if metrics != nil {
 		xMetric = metrics
 	} else {
+		fmt.Printf("warning! not set metric")
 		xMetric = null_metric.MetricsNull{}
 	}
 	emptyIDFunc := func(x *XContext) string {
