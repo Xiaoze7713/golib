@@ -476,8 +476,8 @@ func HttpIntercept(h http.Handler) http.Handler {
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
-		ctx.SetKV("xContext", ctx)
 		serverStartCtx := NewFollowXContext(ctx, ctx.LoadString(HttpPath))
+		serverStartCtx.SetKV("xContext", serverStartCtx)
 		r = r.WithContext(serverStartCtx)
 		h.ServeHTTP(w, r)
 	})
