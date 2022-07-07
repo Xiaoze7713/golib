@@ -20,9 +20,38 @@ import (
 	"github.com/segmentio/ksuid"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"runtime/debug"
 	"strings"
 	"time"
+)
+
+const (
+	HttpAction     = ext.StringTagName("action")
+	HttpPath       = ext.StringTagName("path")
+	HttpMethod     = ext.StringTagName("method")
+	ReqBody        = ext.StringTagName("req_body")
+	ReqBodyLen     = ext.StringTagName("req_body_len")
+	HttpReqHeader  = ext.StringTagName("req_header")
+	RespBody       = ext.StringTagName("resp_body")
+	HttpRespHeader = ext.StringTagName("resp_header")
+	RespCode       = ext.StringTagName("resp_code")
+	RespCodeMsg    = ext.StringTagName("resp_code_msg")
+	ReqStatus      = ext.StringTagName("req_status")
+	CostMs         = ext.StringTagName("cost_ms")
+	ClientIP       = ext.StringTagName("client_ip")
+	UserAgent      = ext.StringTagName("user_agent")
+	Error          = ext.StringTagName("error")
+	ExecStatus     = ext.StringTagName("exec_status")
+	TopicName      = ext.StringTagName("topic_name")
+	ConsumerSource = ext.StringTagName("consumer_source")
+	ProductTarget  = ext.StringTagName("product_target")
+	MessageBody    = ext.StringTagName("msg_body")
+	EventType      = ext.StringTagName("event_type")
+	EventSystem    = ext.StringTagName("event_system")
+	EventBody      = ext.StringTagName("event_body")
+	SpanID         = "span_id"
+	TraceID        = "trace_id"
 )
 
 // 监控 链路跟踪 log
@@ -83,6 +112,24 @@ func Init(logger xlog_base2.LoggerIF,
 	} else {
 		durFunc = durF
 	}
+}
+
+type KVMType map[ContextKey]interface{}
+
+func (m KVMType) ToAnyArgs() []interface{} {
+	var args []interface{}
+	for k, v := range m {
+		args = append(args, k, v)
+	}
+	return args
+}
+
+func (x *XContext) ToAnyArgs(keys ...ContextKey) []interface{} {
+	var args []interface{}
+	for _, k := range keys {
+		args = append(args, k, x.Value(k))
+	}
+	return args
 }
 
 type XContext struct {
@@ -153,24 +200,24 @@ func NewXContext(operationName string) *XContext {
 	return xCtx
 }
 
-func NewXContextWithParent(origin *XContext, operationName string) *XContext {
-	childCtx, cancel := context.WithCancel(origin.Context)
-	origin.CancelList = append(origin.CancelList, cancel)
+func NewChildXContext(parents *XContext, operationName string) *XContext {
+	childCtx, cancel := context.WithCancel(parents.Context)
+	parents.CancelList = append(parents.CancelList, cancel)
 	child := &XContext{
 		Context:    childCtx,
 		LoggerIF:   mLogger,
 		MetricsIF:  mMetric,
 		CancelList: []context.CancelFunc{},
-		//lock:       origin.lock,
+		//lock:       parents.lock,
 	}
 	child.Span = mTrace.StartSpan(operationName,
-		opentracing.ChildOf(origin.Span.Context()),
+		opentracing.ChildOf(parents.Span.Context()),
 		opentracing.StartTime{},
 	)
 	return child
 }
 
-func NewFollowContext(origin XContext, operationName string) *XContext {
+func NewFollowXContext(origin *XContext, operationName string) *XContext {
 	brother := &XContext{
 		Context:    context.Background(),
 		LoggerIF:   mLogger,
@@ -183,39 +230,6 @@ func NewFollowContext(origin XContext, operationName string) *XContext {
 		opentracing.StartTime{},
 	)
 	return brother
-}
-
-const (
-	HttpPath       = ext.StringTagName("path")
-	HttpMethod     = ext.StringTagName("method")
-	ReqBody        = ext.StringTagName("req_body")
-	ReqBodyLen     = ext.StringTagName("req_body_len")
-	HttpReqHeader  = ext.StringTagName("req_header")
-	RespBody       = ext.StringTagName("resp_body")
-	HttpRespHeader = ext.StringTagName("resp_header")
-	RespCode       = ext.StringTagName("resp_code")
-	RespCodeMsg    = ext.StringTagName("resp_code_msg")
-	ReqStatus      = ext.StringTagName("req_status")
-	CostMs         = ext.StringTagName("cost_ms")
-	ClientIP       = ext.StringTagName("client_ip")
-	UserAgent      = ext.StringTagName("user_agent")
-	Error          = ext.StringTagName("error")
-	ExecStatus     = ext.StringTagName("exec_status")
-	TopicName      = ext.StringTagName("topic_name")
-	ConsumerSource = ext.StringTagName("consumer_source")
-	ProductTarget  = ext.StringTagName("product_target")
-	MessageBody    = ext.StringTagName("msg_body")
-	EventType      = ext.StringTagName("event_type")
-	EventSystem    = ext.StringTagName("event_system")
-	EventBody      = ext.StringTagName("event_body")
-	SpanID         = "span_id"
-	TraceID        = "trace_id"
-)
-
-func (x *XContext) SetKVs(kvs map[string]interface{}) {
-	for k, v := range kvs {
-		x.Store(k, v)
-	}
 }
 
 func (x *XContext) SpanID() string {
@@ -242,130 +256,24 @@ func (x *XContext) ErrCode(err error) int64 {
 	return -1
 }
 
-type ContextKey interface {
-	string | ext.StringTagName | any
-}
-
-func (x *XContext) Store(key ContextKey, value interface{}) {
-	x.Context = context.WithValue(x.Context, key, value)
-}
-
 // 获取kv
 
 func GrpcGWIntercept() {
 
 }
 
-func HttpIntercept(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := NewXContextWithContext(r.Context(), "request")
-		defer ctx.Fin()
-		ctx.Store(HttpMethod, r.RequestURI)
-		ctx.Store(HttpPath, r.URL.Path)
-		// 读body
-		body, _ := ioutil.ReadAll(r.Body)
-		bodyStr := string(body)
-		ctx.Store(ReqBodyLen, len(body))
-		ctx.Store(ReqBody, bodyStr)
-		// 写回
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		//r = r.WithContext(lc)
-		// request in
-		ctx.Info("request_in",
-			HttpMethod, ctx.LoadString(HttpMethod),
-			HttpPath, ctx.LoadString(HttpPath),
-			ReqBodyLen, ctx.LoadString(ReqBodyLen),
-			ReqBody, ctx.LoadString(ReqBody))
-		defer func() {
-			if e := recover(); e != any(nil) {
-				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
-				ctx.Store(ReqStatus, "panic")
-			} else {
-				ctx.Store(ReqStatus, "success")
-			}
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
-			// todo code
-			ctx.Store(CostMs, ctx.Duration().Milliseconds())
-			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
-			ctx.Info("response_out",
-				HttpMethod, ctx.LoadString(HttpMethod),
-				HttpPath, ctx.LoadString(HttpPath),
-				CostMs, ctx.LoadString(CostMs),
-			)
-		}()
-		ctx.Store("xContext", ctx)
-		r = r.WithContext(ctx)
-		h.ServeHTTP(w, r)
-	})
-	//x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
-}
-
-func DoRequest() gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		xCtx := NewXContextWithContext(gc, "request")
-		ctx := xCtx
-		traceID := gc.Request.Header.Get("X-Request-Id")
-		if traceID == "" {
-			traceID = ksuid.New().String()
-		}
-		// todo ctx set traceID
-		//gc.Set("RequestID", traceID)
-		ctx.Store(ClientIP, gc.ClientIP())
-		ctx.Store(HttpMethod, gc.Request.Method)
-		ctx.Store(HttpPath, gc.Request.URL.Path)
-		ctx.Store(UserAgent, gc.Request.UserAgent())
-		body, _ := ioutil.ReadAll(gc.Request.Body)
-		bodyStr := string(body)
-		ctx.Store(ReqBodyLen, len(bodyStr))
-		ctx.Store(ReqBody, bodyStr)
-		// 写回
-		gc.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		ctx.Info("request_in",
-			HttpMethod, ctx.LoadString(HttpMethod),
-			HttpPath, ctx.LoadString(HttpPath),
-			ReqBodyLen, ctx.LoadString(ReqBodyLen),
-			ReqBody, ctx.LoadString(ReqBody))
-		defer func() {
-			if e := recover(); e != any(nil) {
-				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
-				ctx.Store(ReqStatus, "panic")
-			} else {
-				ctx.Store(ReqStatus, "success")
-			}
-			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
-			// todo code
-			ctx.Store(CostMs, ctx.Duration().Milliseconds())
-			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
-			ctx.Info("response_out",
-				HttpMethod, ctx.LoadString(HttpMethod),
-				HttpPath, ctx.LoadString(HttpPath),
-				CostMs, ctx.LoadString(CostMs),
-			)
-		}()
-		gc.Set("xContext", ctx)
-		gc.Next()
-		ctxI, ok := gc.Get("xContext")
-		ctx = ctxI.(*XContext)
-		ctx.Fin()
-		resp, ok := gc.Get("resp")
-		if ok {
-			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
-			gc.JSON(http.StatusOK, resp)
-		} else {
-			gc.JSON(http.StatusOK, map[string]interface{}{"code": -1, "code_msg": ""})
-		}
+func (x *XContext) SetKVs(kvs KVMType) {
+	for k, v := range kvs {
+		x.SetKV(k, v)
 	}
 }
 
-type KVMType map[string]interface{}
+type ContextKey interface {
+	string | ext.StringTagName | any
+}
 
-func (m KVMType) ToAnyArgs() []interface{} {
-	var args []interface{}
-	for k, v := range m {
-		args = append(args, k, v)
-	}
-	return args
+func (x *XContext) SetKV(key ContextKey, value interface{}) {
+	x.Context = context.WithValue(x.Context, key, value)
 }
 
 // extTag 常量转 metric label
@@ -403,8 +311,8 @@ func (x *XContext) LoadString(key any) string {
 	return fmt.Sprintf("%v", x.Load(key))
 }
 
-func (x *XContext) Keys2KVMap(keys ...string) map[string]interface{} {
-	kvMap := map[string]interface{}{}
+func (x *XContext) Keys2KVMap(keys ...ContextKey) KVMType {
+	kvMap := KVMType{}
 	for _, key := range keys {
 		val := x.LoadString(key)
 		kvMap[key] = val
@@ -412,8 +320,19 @@ func (x *XContext) Keys2KVMap(keys ...string) map[string]interface{} {
 	return kvMap
 }
 
-func (x *XContext) SetTag(key string, value interface{}) {
-	x.Span.SetTag(key, value)
+func (x *XContext) LogTags(kvm KVMType) {
+	for k, v := range kvm {
+		x.SetTag(k, v)
+	}
+}
+
+func (x *XContext) SetTag(key ContextKey, value interface{}) {
+	switch reflect.TypeOf(key).Kind() {
+	case reflect.String:
+		x.Span.SetTag(key.(string), value)
+	default:
+		x.Span.SetTag(fmt.Sprintf("%v", key), value)
+	}
 }
 
 func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
@@ -424,36 +343,6 @@ func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
 		x.LoggerIF.Error(err)
 	}
 }
-
-//func (x XContext) LogField(key string, value interface{}) {
-//	x.Span.LogFields(ToLogField(key, value))
-//}
-
-//func ToLogField(key string, value interface{}) log.Field {
-//	switch reflect.TypeOf(value).Kind() {
-//	case reflect.Int64:
-//		return log.Int64(key, value.(int64))
-//	case reflect.Int32:
-//		return log.Int32(key, value.(int32))
-//	case reflect.Int:
-//		return log.Int(key, value.(int))
-//	case reflect.String:
-//		return log.String(key, value.(string))
-//	case reflect.Float64:
-//		return log.Float64(key, value.(float64))
-//	case reflect.Float32:
-//		return log.Float32(key, value.(float32))
-//	case reflect.Uint64:
-//		return log.Uint64(key, value.(uint64))
-//	case reflect.Uint32:
-//		return log.Uint32(key, value.(uint32))
-//	case reflect.Bool:
-//		return log.Bool(key, value.(bool))
-//	default:
-//		s, _ := jsoniter.MarshalToString(value)
-//		return log.String(fmt.Sprintf("UnknownType[%v]", key), s)
-//	}
-//}
 
 func (x *XContext) XContextPrefix() string {
 	return fmt.Sprintf("[trace_id:%v][span_id:%v] ", x.TraceID(), x.SpanID())
@@ -467,7 +356,7 @@ func (x *XContext) ArgsFormats(args ...interface{}) string {
 	return strings.Join(outs, " ")
 }
 
-func (x *XContext) KVsFormats(kvs map[string]interface{}) string {
+func (x *XContext) KVsFormats(kvs KVMType) string {
 	var outs []string
 	for k, v := range kvs {
 		outs = append(outs, fmt.Sprintf("%v=%v", k, v))
@@ -545,5 +434,110 @@ func (x *XContext) Fin() {
 	})
 	for _, cancel := range x.CancelList {
 		cancel()
+	}
+}
+
+func HttpIntercept(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := NewXContextWithContext(r.Context(), "request")
+		defer ctx.Fin()
+		// 读body
+		body, _ := ioutil.ReadAll(r.Body)
+		bodyStr := string(body)
+		// 写回
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		requestIn := KVMType{
+			ClientIP:   r.RemoteAddr,
+			HttpMethod: r.Method,
+			HttpPath:   r.URL.Path,
+			ReqBodyLen: len(body),
+			ReqBody:    bodyStr,
+		}
+		ctx.SetKVs(requestIn)
+		ctx.LogTags(requestIn)
+		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		ctx.LogFields("req", "req_in")
+
+		//r = r.WithContext(lc)
+		// request in
+
+		defer func() {
+			if e := recover(); e != any(nil) {
+				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
+				ctx.SetKV(ReqStatus, "panic")
+			} else {
+				ctx.SetKV(ReqStatus, "success")
+			}
+			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
+			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
+			ctx.LogFields("resp", "resp_out")
+			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
+			// todo code
+			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+		}()
+		ctx.SetKV("xContext", ctx)
+		serverStartCtx := NewFollowXContext(ctx, ctx.LoadString(HttpPath))
+		r = r.WithContext(serverStartCtx)
+		h.ServeHTTP(w, r)
+	})
+	//x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
+}
+
+func DoRequest() gin.HandlerFunc {
+	return func(gc *gin.Context) {
+		xCtx := NewXContextWithContext(gc, "request")
+		ctx := xCtx
+		traceID := gc.Request.Header.Get("X-Request-Id")
+		if traceID == "" {
+			traceID = ksuid.New().String()
+		}
+		// todo ctx set traceID
+		//gc.Set("RequestID", traceID)
+		body, _ := ioutil.ReadAll(gc.Request.Body)
+		bodyStr := string(body)
+		// 写回
+		gc.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		requestIn := KVMType{
+			ClientIP:   gc.ClientIP(),
+			HttpMethod: gc.Request.Method,
+			HttpPath:   gc.Request.URL.Path,
+			ReqBodyLen: len(body),
+			ReqBody:    bodyStr,
+			UserAgent:  gc.Request.UserAgent(),
+		}
+		ctx.SetKVs(requestIn)
+		ctx.LogTags(requestIn)
+		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		ctx.LogFields("req", "req_in")
+		defer func() {
+			if e := recover(); e != any(nil) {
+				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
+				ctx.SetKV(ReqStatus, "panic")
+			} else {
+				ctx.SetKV(ReqStatus, "success")
+			}
+			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
+			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
+			ctx.LogFields("resp", "resp_out")
+			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
+			// todo code
+			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+		}()
+		gc.Set("xContext", ctx)
+		gc.Next()
+		ctxI, ok := gc.Get("xContext")
+		ctx = ctxI.(*XContext)
+		ctx.Fin()
+		resp, ok := gc.Get("resp")
+		if ok {
+			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
+			gc.JSON(http.StatusOK, resp)
+		} else {
+			gc.JSON(http.StatusOK, map[string]interface{}{"code": -1, "code_msg": ""})
+		}
 	}
 }

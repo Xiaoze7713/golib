@@ -39,10 +39,10 @@ func TestContext(t *testing.T) {
 	}
 	ctx := NewXContext("start")
 	defer ctx.Fin()
-	ctx1 := NewXContextWithParent(ctx, "count1")
-	ctx2 := NewXContextWithParent(ctx, "count2")
-	ctx3 := NewXContextWithParent(ctx, "count3")
-	ctx4 := NewXContextWithParent(ctx, "count4")
+	ctx1 := NewChildXContext(ctx, "count1")
+	ctx2 := NewChildXContext(ctx, "count2")
+	ctx3 := NewChildXContext(ctx, "count3")
+	ctx4 := NewChildXContext(ctx, "count4")
 	var ctxList = []XContext{ctx1, ctx2, ctx3, ctx4}
 	w := sync.WaitGroup{}
 	for _, c := range ctxList {
@@ -163,10 +163,10 @@ func TestContext2(t *testing.T) {
 			return
 		}
 		ctx := *ctxI.(*XContext)
-		ctx1 := NewXContextWithParent(ctx, "count1")
-		ctx2 := NewXContextWithParent(ctx, "count2")
-		ctx3 := NewXContextWithParent(ctx, "count3")
-		ctx4 := NewXContextWithParent(ctx, "count4")
+		ctx1 := NewChildXContext(ctx, "count1")
+		ctx2 := NewChildXContext(ctx, "count2")
+		ctx3 := NewChildXContext(ctx, "count3")
+		ctx4 := NewChildXContext(ctx, "count4")
 		var ctxList = []XContext{ctx1, ctx2, ctx3, ctx4}
 		w := sync.WaitGroup{}
 		for _, c := range ctxList {
@@ -199,10 +199,10 @@ func TestContext3(t *testing.T) {
 	mux.HandleFunc("/api/hello", func(writer http.ResponseWriter, request *http.Request) {
 		ctx := request.Context().(XContext)
 		defer ctx.Fin()
-		ctx1 := NewXContextWithParent(ctx, "count1")
-		ctx2 := NewXContextWithParent(ctx, "count2")
-		ctx3 := NewXContextWithParent(ctx, "count3")
-		ctx4 := NewXContextWithParent(ctx, "count4")
+		ctx1 := NewChildXContext(ctx, "count1")
+		ctx2 := NewChildXContext(ctx, "count2")
+		ctx3 := NewChildXContext(ctx, "count3")
+		ctx4 := NewChildXContext(ctx, "count4")
 		var ctxList = []XContext{ctx1, ctx2, ctx3, ctx4}
 		w := sync.WaitGroup{}
 		for _, c := range ctxList {

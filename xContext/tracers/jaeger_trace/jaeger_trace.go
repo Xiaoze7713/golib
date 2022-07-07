@@ -7,6 +7,7 @@ import (
 	"github.com/uber/jaeger-lib/metrics"
 	"io"
 	"sync"
+	"time"
 )
 
 type JaegerConfig struct {
@@ -29,8 +30,10 @@ func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) 
 				Param: jConf.Param,
 			},
 			Reporter: &jaegercfg.ReporterConfig{
-				LogSpans:           true,
-				LocalAgentHostPort: jConf.AgentHostPort, // TODO(qingwen): move to config
+				QueueSize:           100,
+				BufferFlushInterval: time.Second,
+				LogSpans:            true,
+				LocalAgentHostPort:  jConf.AgentHostPort, // TODO(qingwen): move to config
 			},
 			RPCMetrics: false,
 		}
