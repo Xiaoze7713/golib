@@ -3,6 +3,7 @@ package xContext
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	xlog_base2 "git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
@@ -25,9 +26,9 @@ import (
 )
 
 // 监控 链路跟踪 log
-var xMetric xmetric_base.MetricsIF
-var xTrace xtrace_base.TracerIF
-var xLogger xlog_base2.LoggerIF
+var mMetric xmetric_base.MetricsIF
+var mTrace xtrace_base.TracerIF
+var mLogger xlog_base2.LoggerIF
 
 type GetStrFunc func(xContext *XContext) string
 type GetDurFunc func(xContext *XContext) time.Duration
@@ -44,22 +45,22 @@ func Init(logger xlog_base2.LoggerIF,
 	metrics xmetric_base.MetricsIF,
 	traceF, spanF GetStrFunc, durF GetDurFunc) {
 	if logger != nil {
-		xLogger = logger
+		mLogger = logger
 	} else {
 		fmt.Printf("warning! not set logger")
-		xLogger = null_log.LoggerNull{}
+		mLogger = null_log.LoggerNull{}
 	}
 	if trace != nil {
-		xTrace = trace
+		mTrace = trace
 	} else {
 		fmt.Printf("warning! not set trace")
-		xTrace = xtrace_base.XTraceNoop{}
+		mTrace = xtrace_base.XTraceNoop{}
 	}
 	if metrics != nil {
-		xMetric = metrics
+		mMetric = metrics
 	} else {
 		fmt.Printf("warning! not set metric")
-		xMetric = null_metric.MetricsNull{}
+		mMetric = null_metric.MetricsNull{}
 	}
 	emptyIDFunc := func(x *XContext) string {
 		return ""
@@ -102,58 +103,71 @@ type XContext struct {
 //	CancelList []context.CancelFunc
 //}
 
-func NewXContextWithContext(ctx context.Context, operationName string) XContext {
-	xCtx := XContext{
+var notGrandFather = errors.New("not grand father")
+
+func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XContext, error) {
+	gCtx := ctx.Value("xContext")
+	xCtx, ok := gCtx.(*XContext)
+	if !ok {
+		mLogger.Error(notGrandFather)
+		xCtx = NewXContextWithContext(ctx, operationName)
+		return xCtx, nil
+	}
+	return xCtx, nil
+}
+
+func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
+	xCtx := &XContext{
 		Context:   ctx,
-		LoggerIF:  xLogger,
-		MetricsIF: xMetric,
+		LoggerIF:  mLogger,
+		MetricsIF: mMetric,
 		//lock:      &sync.RWMutex{},
 	}
-	xCtx.Span = xTrace.StartSpan(operationName,
+	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
 	)
 	return xCtx
 }
 
-func NewXContext(operationName string) XContext {
-	xCtx := XContext{
+func NewXContext(operationName string) *XContext {
+	xCtx := &XContext{
 		Context:   context.Background(),
-		LoggerIF:  xLogger,
-		MetricsIF: xMetric,
+		LoggerIF:  mLogger,
+		MetricsIF: mMetric,
 		//lock:      &sync.RWMutex{},
 	}
-	xCtx.Span = xTrace.StartSpan(operationName,
+	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
 	)
 	return xCtx
 }
 
-func NewXContextWithParent(origin XContext, operationName string) XContext {
+func NewXContextWithParent(origin *XContext, operationName string) *XContext {
 	childCtx, cancel := context.WithCancel(origin.Context)
 	origin.CancelList = append(origin.CancelList, cancel)
-	child := XContext{
+	child := &XContext{
 		Context:    childCtx,
-		LoggerIF:   xLogger,
-		MetricsIF:  xMetric,
+		LoggerIF:   mLogger,
+		MetricsIF:  mMetric,
 		CancelList: []context.CancelFunc{},
 		//lock:       origin.lock,
 	}
-	child.Span = xTrace.StartSpan(operationName,
+	child.Span = mTrace.StartSpan(operationName,
 		opentracing.ChildOf(origin.Span.Context()),
 		opentracing.StartTime{},
 	)
 	return child
 }
 
-func NewFollowContext(origin XContext, operationName string) XContext {
-	brother := XContext{
+func NewFollowContext(origin XContext, operationName string) *XContext {
+	brother := &XContext{
 		Context:    context.Background(),
-		LoggerIF:   xLogger,
-		MetricsIF:  xMetric,
+		LoggerIF:   mLogger,
+		MetricsIF:  mMetric,
 		CancelList: []context.CancelFunc{},
 		//lock:       &sync.RWMutex{},
 	}
-	brother.Span = xTrace.StartSpan(operationName,
+	brother.Span = mTrace.StartSpan(operationName,
 		opentracing.FollowsFrom(origin.Span.Context()),
 		opentracing.StartTime{},
 	)
@@ -227,6 +241,10 @@ func (x *XContext) Store(key ContextKey, value interface{}) {
 
 // 获取kv
 
+func GrpcGWIntercept() {
+
+}
+
 func HttpIntercept(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewXContextWithContext(r.Context(), "request")
@@ -266,6 +284,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 				CostMs, ctx.LoadString(CostMs),
 			)
 		}()
+		ctx.Store("xContext", ctx)
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
@@ -275,7 +294,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 func DoRequest() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		xCtx := NewXContextWithContext(gc, "request")
-		ctx := &xCtx
+		ctx := xCtx
 		traceID := gc.Request.Header.Get("X-Request-Id")
 		if traceID == "" {
 			traceID = ksuid.New().String()

@@ -113,8 +113,8 @@ func xInit() error {
 	xlog.SetupLogDefault()
 	serverName := "x_content_test"
 	xmetric.InitXMetric(&xmetric.Config{
-		ServerName:  serverName,
-		SubSystem:   "metric",
+		ServerName: serverName,
+		//SubSystem:   "metric",
 		Environment: "dev",
 		IDC:         "beijing",
 		IP:          "127.0.0.1",
