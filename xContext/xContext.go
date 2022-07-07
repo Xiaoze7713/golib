@@ -439,7 +439,17 @@ func (x *XContext) Fin() {
 func HttpIntercept(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := NewXContextWithContext(r.Context(), "request")
-		defer ctx.Fin()
+		defer func() {
+			ctx.Fin()
+			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
+			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
+			ctx.LogFields("resp", "resp_out")
+			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
+			// todo code
+			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+		}()
 		// 读body
 		body, _ := ioutil.ReadAll(r.Body)
 		bodyStr := string(body)
@@ -467,6 +477,21 @@ func HttpIntercept(h http.Handler) http.Handler {
 			} else {
 				ctx.SetKV(ReqStatus, "success")
 			}
+		}()
+		serverStartCtx := NewFollowXContext(ctx, ctx.LoadString(HttpPath))
+		serverStartCtx.SetKV("xContext", serverStartCtx)
+		r = r.WithContext(serverStartCtx)
+		h.ServeHTTP(w, r)
+		serverStartCtx.Fin()
+	})
+	//x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
+}
+
+func DoRequest() gin.HandlerFunc {
+	return func(gc *gin.Context) {
+		ctx := NewXContextWithContext(gc, "request")
+		defer func() {
+			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
@@ -476,18 +501,6 @@ func HttpIntercept(h http.Handler) http.Handler {
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
-		serverStartCtx := NewFollowXContext(ctx, ctx.LoadString(HttpPath))
-		serverStartCtx.SetKV("xContext", serverStartCtx)
-		r = r.WithContext(serverStartCtx)
-		h.ServeHTTP(w, r)
-	})
-	//x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
-}
-
-func DoRequest() gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		xCtx := NewXContextWithContext(gc, "request")
-		ctx := xCtx
 		traceID := gc.Request.Header.Get("X-Request-Id")
 		if traceID == "" {
 			traceID = ksuid.New().String()
@@ -517,20 +530,11 @@ func DoRequest() gin.HandlerFunc {
 			} else {
 				ctx.SetKV(ReqStatus, "success")
 			}
-			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
-			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
-			ctx.LogFields("resp", "resp_out")
-			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
-			// todo code
-			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
 		gc.Set("xContext", ctx)
 		gc.Next()
-		ctxI, ok := gc.Get("xContext")
-		ctx = ctxI.(*XContext)
-		ctx.Fin()
+		//ctxI, _ := gc.Get("xContext")
+		//ctx = ctxI.(*XContext)
 		resp, ok := gc.Get("resp")
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
