@@ -193,7 +193,7 @@ func (x *XContext) SetKVs(kvs map[string]interface{}) {
 	}
 }
 
-func (x *XContext) SpanID() any {
+func (x *XContext) SpanID() string {
 	if spanIDFunc == nil {
 		return fmt.Sprintf("%x", x.Span.Context())
 	} else {
@@ -201,7 +201,7 @@ func (x *XContext) SpanID() any {
 	}
 }
 
-func (x *XContext) TraceID() any {
+func (x *XContext) TraceID() string {
 	//return x.Load(TraceID)
 	return traceIDFunc(x)
 }
