@@ -20,7 +20,6 @@ import (
 	"github.com/segmentio/ksuid"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -288,13 +287,6 @@ func (x *XContext) TagNames2PLabels(tags ...ext.StringTagName) prometheus.Labels
 }
 
 // set span tag
-
-func (x *XContext) SpanSTagSet(tags ...ext.StringTagName) {
-	for _, tag := range tags {
-		tag.Set(x.Span, x.LoadString(tag))
-	}
-}
-
 func (x *XContext) DoRequestSpanTag() {
 	x.SpanSTagSet(HttpPath, HttpMethod, ReqBody, HttpReqHeader, ReqBodyLen)
 }
@@ -322,17 +314,24 @@ func (x *XContext) Keys2KVMap(keys ...ContextKey) KVMType {
 
 func (x *XContext) LogTags(kvm KVMType) {
 	for k, v := range kvm {
-		x.SetTag(k, v)
+		extStr, ok := k.(ext.StringTagName)
+		if !ok {
+			s := fmt.Sprintf("%v", k)
+			x.SetTag(s, v)
+			continue
+		}
+		x.SpanSTagSet(extStr)
 	}
 }
 
-func (x *XContext) SetTag(key ContextKey, value interface{}) {
-	switch reflect.TypeOf(key).Kind() {
-	case reflect.String:
-		x.Span.SetTag(key.(string), value)
-	default:
-		x.Span.SetTag(fmt.Sprintf("%v", key), value)
+func (x *XContext) SpanSTagSet(tags ...ext.StringTagName) {
+	for _, tag := range tags {
+		tag.Set(x.Span, x.LoadString(tag))
 	}
+}
+
+func (x *XContext) SetTag(key string, value interface{}) {
+	x.Span.SetTag(key, value)
 }
 
 func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
