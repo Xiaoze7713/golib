@@ -113,6 +113,7 @@ func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XCo
 		xCtx = NewXContextWithContext(ctx, operationName)
 		return xCtx, nil
 	}
+	xCtx.Context = ctx
 	return xCtx, nil
 }
 
