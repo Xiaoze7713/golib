@@ -123,6 +123,13 @@ func (m KVMType) ToAnyArgs() []interface{} {
 	return args
 }
 
+func (m KVMType) ToAnyArgsWithValues(args ...interface{}) []interface{} {
+	for k, v := range m {
+		args = append(args, k, v)
+	}
+	return args
+}
+
 func (x *XContext) ToAnyArgs(keys ...ContextKey) []interface{} {
 	var args []interface{}
 	for _, k := range keys {
