@@ -1,4 +1,4 @@
-package xContext
+package x_context
 
 import (
 	"bytes"
@@ -58,20 +58,81 @@ var mMetric xmetric_base.MetricsIF
 var mTrace xtrace_base.TracerIF
 var mLogger xlog_base2.LoggerIF
 
-type GetStrFunc func(xContext *XContext) string
-type GetDurFunc func(xContext *XContext) time.Duration
+type GetIDType func(xContext *XContext) IDType
+type GetDurType func(xContext *XContext) time.Duration
 type GetErrorCodeByErr func(err error) int64
 
+type IDType interface {
+	String() string
+	Value() int64
+}
+
+type NullIDType int64
+
+func (m NullIDType) String() string {
+	return fmt.Sprintf("%x", m)
+}
+
+func (m NullIDType) Value() int64 {
+	return int64(m)
+}
+
 // 几个id的获取
-var spanIDFunc GetStrFunc
-var traceIDFunc GetStrFunc
-var durFunc GetDurFunc
+var spanIDFunc GetIDType
+var traceIDFunc GetIDType
+var durFunc GetDurType
 var toErrCode GetErrorCodeByErr
+
+func emptyIDFunc(x *XContext) IDType {
+	return NullIDType(0)
+}
+func emptyDurFunc(x *XContext) time.Duration {
+	return 0
+}
+
+//type ContextOptions interface {
+//	Apply() error
+//}
+//
+//type NullTraceID struct {
+//	ContextOptions
+//}
+//
+//func (NullTraceID) Apply(strFunc GetIDType) {
+//	if strFunc != nil {
+//		traceIDFunc = strFunc
+//		return
+//	}
+//	traceIDFunc = func(xContext *XContext) string {
+//		return ""
+//	}
+//}
+//
+//type NullSpanID struct {
+//	ContextOptions
+//}
+//
+//func (NullSpanID) Apply() {
+//	spanIDFunc = func(xContext *XContext) string {
+//		return ""
+//	}
+//}
+//
+//type NullDur struct {
+//	ContextOptions
+//}
+//
+//func (NullDur) Apply() {
+//	durFunc = func(xContext *XContext) time.Duration {
+//		return -1
+//	}
+//}
+//
 
 func Init(logger xlog_base2.LoggerIF,
 	trace xtrace_base.TracerIF,
 	metrics xmetric_base.MetricsIF,
-	traceF, spanF GetStrFunc, durF GetDurFunc) {
+	traceF, spanF GetIDType, durF GetDurType) {
 	if logger != nil {
 		mLogger = logger
 	} else {
@@ -90,27 +151,9 @@ func Init(logger xlog_base2.LoggerIF,
 		fmt.Printf("warning! not set metric")
 		mMetric = null_metric.MetricsNull{}
 	}
-	emptyIDFunc := func(x *XContext) string {
-		return ""
-	}
-	emptyDurFunc := func(x *XContext) time.Duration {
-		return 0
-	}
-	if traceF == nil {
-		traceIDFunc = emptyIDFunc
-	} else {
-		traceIDFunc = traceF
-	}
-	if spanF == nil {
-		spanIDFunc = emptyIDFunc
-	} else {
-		spanIDFunc = spanF
-	}
-	if durF == nil {
-		durFunc = emptyDurFunc
-	} else {
-		durFunc = durF
-	}
+	traceIDFunc = traceF
+	spanIDFunc = spanF
+	durFunc = durF
 }
 
 type KVMType map[ContextKey]interface{}
@@ -145,6 +188,10 @@ type XContext struct {
 	Span          xspan_base.SpanIF
 	CancelList    []context.CancelFunc
 	operationName string
+}
+
+func (x *XContext) OperationName() string {
+	return x.operationName
 }
 
 //
@@ -238,20 +285,26 @@ func NewFollowXContext(origin *XContext, operationName string) *XContext {
 	return brother
 }
 
-func (x *XContext) SpanID() string {
+func (x *XContext) SpanID() IDType {
 	if spanIDFunc == nil {
-		return fmt.Sprintf("%x", x.Span.Context())
+		return emptyIDFunc(x)
 	} else {
 		return spanIDFunc(x)
 	}
 }
 
-func (x *XContext) TraceID() string {
+func (x *XContext) TraceID() IDType {
 	//return x.Load(TraceID)
+	if traceIDFunc == nil {
+		return emptyIDFunc(x)
+	}
 	return traceIDFunc(x)
 }
 
 func (x *XContext) Duration() time.Duration {
+	if durFunc == nil {
+		return emptyDurFunc(x)
+	}
 	return durFunc(x)
 }
 

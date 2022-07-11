@@ -1,6 +1,7 @@
 package jaeger_trace
 
 import (
+	"git.singularity-ai.com/backend/library/xContext"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -51,4 +52,42 @@ func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) 
 		)
 	})
 	return tracer, closer, err
+}
+
+type JaegerSpanID struct {
+	jaeger.SpanContext
+}
+
+func (m JaegerSpanID) String() string {
+	return m.SpanContext.SpanID().String()
+}
+
+func (m JaegerSpanID) Value() int64 {
+	return int64(m.SpanContext.SpanID())
+}
+
+func SpanIDFunc(x *xContext.XContext) xContext.IDType {
+	spanCtx := x.Span.Context().(jaeger.SpanContext)
+	return JaegerSpanID{spanCtx}
+}
+
+type JaegerTraceID struct {
+	jaeger.SpanContext
+}
+
+func (m JaegerTraceID) String() string {
+	return m.SpanContext.TraceID().String()
+}
+
+func (m JaegerTraceID) Value() int64 {
+	return int64(m.SpanContext.TraceID().Low)
+}
+func TraceIDFunc(x *xContext.XContext) xContext.IDType {
+	spanCtx := x.Span.Context().(jaeger.SpanContext)
+	return JaegerTraceID{spanCtx}
+}
+
+func DurFunc(x *xContext.XContext) time.Duration {
+	spanCtx := x.Span.(*jaeger.Span)
+	return spanCtx.Duration()
 }
