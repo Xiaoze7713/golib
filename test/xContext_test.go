@@ -1,12 +1,12 @@
-package xContext
+package test
 
 import (
 	"context"
 	"fmt"
+	"git.singularity-ai.com/backend/library/xContext"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"git.singularity-ai.com/backend/library/xContext/metrics/xmetric"
 	"git.singularity-ai.com/backend/library/xContext/tracers/jaeger_trace"
-	"git.singularity-ai.com/backend/library/xContext/x_context"
 	"github.com/gin-gonic/gin"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,13 +21,14 @@ import (
 
 const name = iota
 
-func RunFunc(ctx *x_context.XContext) {
+func RunFunc(ctx *xContext.XContext) {
 	for i := 0; i < 3; i++ {
 		time.Sleep(time.Second)
 		ctx.Info(ctx.OperationName(), i)
 		ctx.SetTag("val", fmt.Sprintf("%v", i))
 		ctx.LogFields("hi", "i`am xiaoai")
 	}
+	ctx.Info(ctx.SerializeSpanContext())
 }
 
 //日志自定义格式
@@ -37,17 +38,17 @@ func TestContext(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
-	ctx := x_context.NewXContext("start")
+	ctx := xContext.NewXContext("start")
 	defer ctx.Fin()
-	ctx1 := x_context.NewChildXContext(ctx, "count1")
-	ctx2 := x_context.NewChildXContext(ctx, "count2")
-	ctx3 := x_context.NewChildXContext(ctx, "count3")
-	ctx4 := x_context.NewChildXContext(ctx, "count4")
-	var ctxList = []*x_context.XContext{ctx1, ctx2, ctx3, ctx4}
+	ctx1 := xContext.NewChildXContext(ctx, "count1")
+	ctx2 := xContext.NewChildXContext(ctx, "count2")
+	ctx3 := xContext.NewChildXContext(ctx, "count3")
+	ctx4 := xContext.NewChildXContext(ctx, "count4")
+	var ctxList = []*xContext.XContext{ctx1, ctx2, ctx3, ctx4}
 	w := sync.WaitGroup{}
 	for _, c := range ctxList {
 		w.Add(1)
-		go func(xc *x_context.XContext) {
+		go func(xc *xContext.XContext) {
 			RunFunc(xc)
 			defer xc.Fin()
 			w.Done()
@@ -67,7 +68,7 @@ func GinServer() (ginInstance *gin.Engine) {
 	router.Use(
 		// logger.Logger(utils.SetLogger("room.log")),
 		gin.Recovery(),
-		x_context.DoRequest(),
+		xContext.DoRequest(),
 	)
 	//router.Use(requests.DoRequest())
 	router.GET("/health", func(c *gin.Context) {
@@ -103,7 +104,7 @@ func Sign() (exit chan os.Signal) {
 }
 
 func TestPointer(t *testing.T) {
-	xc := x_context.NewXContext("xx")
+	xc := xContext.NewXContext("xx")
 	ctx := context.Context(xc)
 	ctx.Done()
 }
@@ -128,7 +129,12 @@ func xInit() error {
 	if err != nil {
 		return err
 	}
-	x_context.Init(xlog.GetLogger(), trace, xmetric.Handler, jaeger_trace.TraceIDFunc, jaeger_trace.SpanIDFunc, jaeger_trace.DurFunc)
+	xContext.Init(xlog.GetLogger(), trace, xmetric.Handler,
+		jaeger_trace.TraceIDFunc,
+		jaeger_trace.SpanIDFunc,
+		jaeger_trace.DurFunc,
+		jaeger_trace.ExtractSpanFromString,
+		jaeger_trace.SerializeToString)
 	return err
 }
 
@@ -146,16 +152,16 @@ func TestContext2(t *testing.T) {
 		if !ok {
 			return
 		}
-		ctx := ctxI.(*x_context.XContext)
-		ctx1 := x_context.NewChildXContext(ctx, "count1")
-		ctx2 := x_context.NewChildXContext(ctx, "count2")
-		ctx3 := x_context.NewChildXContext(ctx, "count3")
-		ctx4 := x_context.NewChildXContext(ctx, "count4")
-		var ctxList = []*x_context.XContext{ctx1, ctx2, ctx3, ctx4}
+		ctx := ctxI.(*xContext.XContext)
+		ctx1 := xContext.NewChildXContext(ctx, "count1")
+		ctx2 := xContext.NewChildXContext(ctx, "count2")
+		ctx3 := xContext.NewChildXContext(ctx, "count3")
+		ctx4 := xContext.NewChildXContext(ctx, "count4")
+		var ctxList = []*xContext.XContext{ctx1, ctx2, ctx3, ctx4}
 		w := sync.WaitGroup{}
 		for _, c := range ctxList {
 			w.Add(1)
-			go func(xc *x_context.XContext) {
+			go func(xc *xContext.XContext) {
 				RunFunc(xc)
 				defer xc.Fin()
 				w.Done()
@@ -181,17 +187,18 @@ func TestContext3(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/api/hello", func(writer http.ResponseWriter, request *http.Request) {
-		ctx := request.Context().(*x_context.XContext)
+		ctx := request.Context().(*xContext.XContext)
 		defer ctx.Fin()
-		ctx1 := x_context.NewChildXContext(ctx, "count1")
-		ctx2 := x_context.NewChildXContext(ctx, "count2")
-		ctx3 := x_context.NewChildXContext(ctx, "count3")
-		ctx4 := x_context.NewChildXContext(ctx, "count4")
-		var ctxList = []*x_context.XContext{ctx1, ctx2, ctx3, ctx4}
+		ctx1 := xContext.NewChildXContext(ctx, "count1")
+		ctx2 := xContext.NewChildXContext(ctx, "count2")
+		ctx3 := xContext.NewChildXContext(ctx, "count3")
+		ctx4 := xContext.NewChildXContext(ctx, "count4")
+		ctx5 := xContext.NewXContextWithContextString(ctx, "request_in", "6bb39019d4295881:6187ccb70fd3667f:21aafde365567e92:0")
+		var ctxList = []*xContext.XContext{ctx1, ctx2, ctx3, ctx4, ctx5}
 		w := sync.WaitGroup{}
 		for _, c := range ctxList {
 			w.Add(1)
-			go func(xc *x_context.XContext) {
+			go func(xc *xContext.XContext) {
 				RunFunc(xc)
 				defer xc.Fin()
 				w.Done()
@@ -208,7 +215,7 @@ func TestContext3(t *testing.T) {
 	})
 	s := http.Server{
 		Addr:    ":9033",
-		Handler: x_context.HttpIntercept(mux),
+		Handler: xContext.HttpIntercept(mux),
 	}
 	err = s.ListenAndServe()
 
@@ -224,7 +231,7 @@ func TestName(t *testing.T) {
 	fmt.Println(s)
 }
 
-func Context2(ctx x_context.XContext) {
+func Context2(ctx xContext.XContext) {
 
 }
 
@@ -235,7 +242,6 @@ func DoubleWrite() {
 	ctx2 := context.WithValue(ctx, "span", 2)
 	fmt.Printf("ctx %v trace %v\n", ctx2.Value("span"), ctx2.Value("traceID"))
 	fmt.Printf("ctx %v trace %v\n", ctx.Value("span"), ctx2.Value("traceID"))
-
 }
 
 func TestCtx(t *testing.T) {

@@ -17,7 +17,6 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/segmentio/ksuid"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
@@ -67,6 +66,10 @@ type SerializeToString func(span opentracing.Span) string
 type IDType interface {
 	String() string
 	Value() int64
+}
+
+type Trace struct {
+	TraceID string `json:"trace_id"`
 }
 
 type NullIDType int64
@@ -233,9 +236,9 @@ func (x *XContext) CopyWithContext(ctx context.Context) *XContext {
 	}
 }
 
-func NewXContextWithContextString(operationName, spanCtxString string) *XContext {
+func NewXContextWithContextString(ctx context.Context, operationName, spanCtxString string) *XContext {
 	xCtx := &XContext{
-		Context:   context.Background(),
+		Context:   ctx,
 		LoggerIF:  mLogger,
 		MetricsIF: mMetric,
 		//lock:      &sync.RWMutex{},
@@ -515,7 +518,8 @@ func (x *XContext) Fin() {
 
 func HttpIntercept(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := NewXContextWithContext(r.Context(), "request")
+		traceID := r.Header.Get("trace_id")
+		ctx := NewXContextWithContextString(r.Context(), "request", traceID)
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
@@ -566,7 +570,8 @@ func HttpIntercept(h http.Handler) http.Handler {
 
 func DoRequest() gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		ctx := NewXContextWithContext(gc, "request")
+		traceID := gc.GetHeader("trace_id")
+		ctx := NewXContextWithContextString(gc, "request", traceID)
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
@@ -578,11 +583,6 @@ func DoRequest() gin.HandlerFunc {
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
-		traceID := gc.Request.Header.Get("X-Request-Id")
-		if traceID == "" {
-			traceID = ksuid.New().String()
-		}
-		// todo ctx set traceID
 		//gc.Set("RequestID", traceID)
 		body, _ := ioutil.ReadAll(gc.Request.Body)
 		bodyStr := string(body)
