@@ -43,6 +43,7 @@ type EventMsg struct {
 	Data      interface{} `json:"data"`
 	Version   string      `json:"version"`
 	Timestamp int64       `json:"timestamp"`
+	TraceID   string      `json:"trace_id"`
 }
 
 // DefaultEventData 默认事件data结构
@@ -54,15 +55,30 @@ type Event struct {
 	SendMQHandle func(msgByte []byte) error
 }
 
+func (e *Event) SendEventTrace(data interface{}, systemID, typeID int, traceID string) error {
+
+	eventMsg := EventMsg{
+		ID:        int64(common.GetSFInstance().GetUniqueId()),
+		System:    systemID,
+		Type:      typeID,
+		Data:      data,
+		Version:   "",
+		Timestamp: time.Now().UnixNano() / 1e6,
+		TraceID:   traceID,
+	}
+	msg, _ := jsoniter.Marshal(eventMsg)
+	return e.SendMQHandle(msg)
+}
+
 func (e *Event) SendEvent(data interface{}, systemID, typeID int) error {
 
 	eventMsg := EventMsg{
-		int64(common.GetSFInstance().GetUniqueId()),
-		systemID,
-		typeID,
-		data,
-		"",
-		time.Now().UnixNano() / 1e6,
+		ID:        int64(common.GetSFInstance().GetUniqueId()),
+		System:    systemID,
+		Type:      typeID,
+		Data:      data,
+		Version:   "",
+		Timestamp: time.Now().UnixNano() / 1e6,
 	}
 	msg, _ := jsoniter.Marshal(eventMsg)
 	return e.SendMQHandle(msg)
@@ -70,12 +86,12 @@ func (e *Event) SendEvent(data interface{}, systemID, typeID int) error {
 
 func (e *Event) SendEventWithVer(data interface{}, systemID, typeID int, version string) error {
 	eventMsg := EventMsg{
-		int64(common.GetSFInstance().GetUniqueId()),
-		systemID,
-		typeID,
-		data,
-		version,
-		time.Now().UnixNano() / 1e6,
+		ID:        int64(common.GetSFInstance().GetUniqueId()),
+		System:    systemID,
+		Type:      typeID,
+		Data:      data,
+		Version:   version,
+		Timestamp: time.Now().UnixNano() / 1e6,
 	}
 	msg, _ := jsoniter.Marshal(eventMsg)
 	return e.SendMQHandle(msg)
