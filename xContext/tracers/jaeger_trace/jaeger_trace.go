@@ -91,3 +91,14 @@ func DurFunc(x *xContext.XContext) time.Duration {
 	spanCtx := x.Span.(*jaeger.Span)
 	return spanCtx.Duration()
 }
+
+func ExtractSpanFromString(operationName, spanStr string, tracer opentracing.Tracer) (newSpan opentracing.Span, err error) {
+	spanCtx, err := jaeger.ContextFromString(spanStr)
+	newSpan = tracer.StartSpan(operationName, opentracing.ChildOf(spanCtx))
+	return newSpan, err
+}
+
+func SerializeToString(span opentracing.Span) string {
+	jSpan := span.(*jaeger.Span)
+	return jSpan.String()
+}

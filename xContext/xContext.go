@@ -61,6 +61,8 @@ var mLogger xlog_base2.LoggerIF
 type GetIDType func(xContext *XContext) IDType
 type GetDurType func(xContext *XContext) time.Duration
 type GetErrorCodeByErr func(err error) int64
+type ExtractSpanFunc func(operationName, spanStr string, tracer opentracing.Tracer) (opentracing.Span, error)
+type SerializeToString func(span opentracing.Span) string
 
 type IDType interface {
 	String() string
@@ -82,6 +84,8 @@ var spanIDFunc GetIDType
 var traceIDFunc GetIDType
 var durFunc GetDurType
 var toErrCode GetErrorCodeByErr
+var extractFunc ExtractSpanFunc
+var serializeFunc SerializeToString
 
 func emptyIDFunc(x *XContext) IDType {
 	return NullIDType(0)
@@ -132,7 +136,7 @@ func emptyDurFunc(x *XContext) time.Duration {
 func Init(logger xlog_base2.LoggerIF,
 	trace xtrace_base.TracerIF,
 	metrics xmetric_base.MetricsIF,
-	traceF, spanF GetIDType, durF GetDurType) {
+	traceF, spanF GetIDType, durF GetDurType, extractF ExtractSpanFunc, serializeF SerializeToString) {
 	if logger != nil {
 		mLogger = logger
 	} else {
@@ -154,6 +158,8 @@ func Init(logger xlog_base2.LoggerIF,
 	traceIDFunc = traceF
 	spanIDFunc = spanF
 	durFunc = durF
+	extractFunc = extractF
+	serializeFunc = serializeF
 }
 
 type KVMType map[ContextKey]interface{}
@@ -225,6 +231,17 @@ func (x *XContext) CopyWithContext(ctx context.Context) *XContext {
 		CancelList:    nil,
 		operationName: x.operationName,
 	}
+}
+
+func NewXContextWithContextString(operationName, spanCtxString string) *XContext {
+	xCtx := &XContext{
+		Context:   context.Background(),
+		LoggerIF:  mLogger,
+		MetricsIF: mMetric,
+		//lock:      &sync.RWMutex{},
+	}
+	xCtx.Span = newSpanWithString(spanCtxString, operationName)
+	return xCtx
 }
 
 func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
@@ -404,7 +421,7 @@ func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
 }
 
 func (x *XContext) XContextPrefix() string {
-	return fmt.Sprintf("[trace_id:%v][span_id:%v] ", x.TraceID(), x.SpanID())
+	return fmt.Sprintf("[trace_id:%v][span_id:%v] ", x.TraceID().String(), x.SpanID().String())
 }
 
 func (x *XContext) ArgsFormats(args ...interface{}) string {
@@ -603,4 +620,22 @@ func DoRequest() gin.HandlerFunc {
 			gc.JSON(http.StatusOK, map[string]interface{}{"code": -1, "code_msg": ""})
 		}
 	}
+}
+
+func newSpanWithString(ctxStr, operationName string) opentracing.Span {
+	if extractFunc == nil {
+		return mTrace.StartSpan(operationName)
+	}
+	span, err := extractFunc(operationName, ctxStr, mTrace)
+	if err != nil {
+		return mTrace.StartSpan(operationName)
+	}
+	return span
+}
+
+func (m *XContext) SerializeSpanContext() string {
+	if serializeFunc == nil {
+		return ""
+	}
+	return serializeFunc(m.Span)
 }
