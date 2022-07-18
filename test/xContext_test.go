@@ -147,12 +147,13 @@ func TestContext2(t *testing.T) {
 	g := GinServer()
 	g.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	gg := g.Group("api")
-	gg.GET("hello", func(c *gin.Context) {
+	gg.POST("hello", func(c *gin.Context) {
 		ctxI, ok := c.Get("xContext")
 		if !ok {
 			return
 		}
 		ctx := ctxI.(*xContext.XContext)
+		ctx.Info("pupupu", c.GetHeader("trace_id"))
 		ctx1 := xContext.NewChildXContext(ctx, "count1")
 		ctx2 := xContext.NewChildXContext(ctx, "count2")
 		ctx3 := xContext.NewChildXContext(ctx, "count3")

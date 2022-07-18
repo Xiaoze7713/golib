@@ -8,18 +8,19 @@ require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.2+incompatible
 	github.com/confluentinc/confluent-kafka-go v1.8.2
 	github.com/gin-gonic/gin v1.7.7
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-stack/stack v1.8.0
 	github.com/gomodule/redigo v1.8.8
 	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.5.0
-	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.5.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/xutils/lib-common v0.0.0
 	github.com/zouyx/agollo/v4 v4.0.8
+	google.golang.org/grpc v1.45.0
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.5
 )
@@ -28,7 +29,8 @@ require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
@@ -56,6 +58,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.9.1 // indirect
 	github.com/prometheus/procfs v0.0.8 // indirect
+	github.com/rs/xid v1.2.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
