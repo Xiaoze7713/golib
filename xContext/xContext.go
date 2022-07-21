@@ -17,6 +17,7 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/xutils/lib-common/utils"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
@@ -577,7 +578,7 @@ func DoRequest() gin.HandlerFunc {
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
-			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
 			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
@@ -615,9 +616,12 @@ func DoRequest() gin.HandlerFunc {
 		resp, ok := gc.Get("resp")
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
+			ctx.SetKV(RespBody, utils.MustString(resp))
 			gc.JSON(http.StatusOK, resp)
 		} else {
-			gc.JSON(http.StatusOK, map[string]interface{}{"code": -1, "code_msg": ""})
+			resp = map[string]interface{}{"code": -1, "code_msg": ""}
+			gc.JSON(http.StatusOK, resp)
+			ctx.SetKV(RespBody, utils.MustString(resp))
 		}
 	}
 }
