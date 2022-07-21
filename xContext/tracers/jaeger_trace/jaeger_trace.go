@@ -1,14 +1,19 @@
 package jaeger_trace
 
 import (
-	"git.singularity-ai.com/backend/library/xContext"
+	"fmt"
+	"io"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/BurntSushi/toml"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	"github.com/uber/jaeger-lib/metrics"
-	"io"
-	"sync"
-	"time"
+
+	"git.singularity-ai.com/backend/library/xContext"
 )
 
 type JaegerConfig struct {
@@ -19,6 +24,31 @@ type JaegerConfig struct {
 
 var tracer opentracing.Tracer
 var closer io.Closer
+
+var defaultJaegerConfigPath = "conf/service/jaeger.toml"
+
+func Init(filePath string) (opentracing.Tracer, io.Closer, error) {
+	var config JaegerConfig
+	if filePath == "" {
+		filePath = defaultJaegerConfigPath
+	}
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		fmt.Println("jaeger conf file IsNotExist")
+		return nil, nil, err
+	}
+	if _, err := toml.DecodeFile(filePath, &config); err != nil {
+		panic(fmt.Sprintf("Can't load config file, %s", err.Error()))
+	}
+	return NewJaegerTrace(&config)
+}
+
+func GetTracer() opentracing.Tracer {
+	return tracer
+}
+
+func GetCloser() io.Closer {
+	return closer
+}
 
 func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) {
 	once := sync.Once{}

@@ -8,113 +8,193 @@
 package log
 
 import (
-	"fmt"
-	"git.singularity-ai.com/backend/library/env"
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
-	"io"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"time"
 )
 
-type Logger struct {
-	l *logrus.Logger
-}
+// 文件后缀分类 用于区分普通日志、wf错误日志、标准输出
+const (
+	TxtLogNormal    = "normal"
+	TxtLogWarnfatal = "warnfatal"
+	TxtLogStdout    = "stdout"
+)
 
-//日志自定义格式
-type LogFormatter struct{}
+type Logger map[string]*LogWriter
 
-//格式详情
-func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	timestamp := time.Now().Local().Format("2006-01-02 15:04:05")
-	_, file, len, err := runtime.Caller(7) // 固定层数为7
-	if err != true {
-		file = filepath.Base(entry.Caller.File)
-		len = entry.Caller.Line
-	} else {
-		file = env.AppName() + strings.Replace(file, env.RootPath(), "", 1)
+var globalLogger Logger
+
+func initGlobalLogger(conf LogConfig) {
+	if globalLogger == nil {
+		globalLogger = make(Logger)
 	}
-	msg := fmt.Sprintf("%s: %s %s:%d %s\n", strings.ToUpper(entry.Level.String()), timestamp, file, len, entry.Message)
-	return []byte(msg), nil
+	globalLogger[TxtLogStdout] = NewStdWriter(conf)
+	globalLogger[TxtLogNormal] = NewWriter(conf, "")
+	globalLogger[TxtLogWarnfatal] = NewWriter(conf, ".wf")
 }
 
-func NewLogger(config LogConfig, suffix string) *logrus.Logger {
-
-	if env.AppName() == "unknown" {
-		env.SetAppName(config.AppName)
+func filterWriter(level logrus.Level) string {
+	if level <= logrus.WarnLevel {
+		return TxtLogWarnfatal
 	}
-	//日志目录
-	path := env.LogRootPath()
-	//日志文件
-	fileName := filepath.Join(path, env.AppName()+suffix+".log")
+	return TxtLogNormal
+}
 
-	w := NewWriter(fileName, time.Duration(config.RotateUnit)*time.Hour, config.RotateCount)
-
-	//实例化
-	logger := logrus.New()
-
-	//设置输出
-	if config.Stdout == true {
-		writers := []io.Writer{
-			w,
-			os.Stdout}
-		//同时写文件和屏幕
-		fileAndStdoutWriter := io.MultiWriter(writers...)
-		logger.Out = fileAndStdoutWriter
-	} else {
-		logger.Out = w
+func buildWriterNames(level logrus.Level) []string {
+	names := []string{
+		filterWriter(level),
 	}
-
-	//设置日志级别
-	level, _ := logrus.ParseLevel(config.Level)
-	logger.SetLevel(level)
-
-	//设置日志格式
-	logger.SetReportCaller(true)
-	logger.SetFormatter(new(LogFormatter))
-
-	return logger
+	if globalConfig.Stdout {
+		names = append(names, TxtLogStdout)
+	}
+	return names
 }
 
-func NewWriter(path string, rotationTime time.Duration, maxNums int) *rotatelogs.RotateLogs {
-	writer, _ := rotatelogs.New(
-		path+".%Y%m%d%H",
-		rotatelogs.WithLinkName(path),
-		rotatelogs.WithMaxAge(time.Duration(maxNums)*rotationTime),
-		rotatelogs.WithRotationTime(rotationTime),
-	)
-	return writer
-}
-
-var defaultLoggerConfig = LogConfig{
-	"singularity",
-	1,
-	48,
-	"warn",
-	false,
-}
-
-func GetDefaultLogger() *Logger {
-	if loggerDef == nil {
-		// 初始化日志目录
-		initLogDir(env.LogRootPath())
-		loggerDef = &Logger{
-			NewLogger(defaultLoggerConfig, ""),
+func (l Logger) WriteLogf(level logrus.Level, format string, args ...interface{}) {
+	names := buildWriterNames(level)
+	for _, name := range names {
+		if format != "" {
+			l[name].l.Logf(level, format, args...)
+		} else {
+			l[name].l.Log(level, args...)
 		}
 	}
-	return loggerDef
 }
 
-func GetWfLogger() *Logger {
-	if loggerWf == nil {
-		// 初始化日志目录
-		initLogDir(env.LogRootPath())
-		loggerWf = &Logger{
-			NewLogger(defaultLoggerConfig, "wf"),
+func (l Logger) WriteLogln(level logrus.Level, args ...interface{}) {
+	names := buildWriterNames(level)
+	for _, name := range names {
+		l[name].l.Logln(level, args...)
+	}
+}
+
+func (l Logger) WritePrintf(format string, args ...interface{}) {
+	names := buildWriterNames(logrus.InfoLevel)
+	for _, name := range names {
+		if format != "" {
+			l[name].l.Printf(format, args...)
+		} else {
+			l[name].l.Print(args...)
 		}
 	}
-	return loggerWf
+}
+
+func (l Logger) WritePrintln(args ...interface{}) {
+	names := buildWriterNames(logrus.InfoLevel)
+	for _, name := range names {
+		l[name].l.Println(args...)
+	}
+}
+
+func (l Logger) Tracef(format string, args ...interface{}) {
+	l.WriteLogf(logrus.TraceLevel, format, args...)
+}
+
+func (l Logger) Debugf(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.DebugLevel, format, args...)
+}
+
+func (l Logger) Infof(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.InfoLevel, format, args...)
+}
+
+func (l Logger) Printf(format string, args ...interface{}) {
+	globalLogger.WritePrintf(format, args...)
+}
+
+func (l Logger) Warnf(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.WarnLevel, format, args...)
+}
+
+func (l Logger) Warningf(format string, args ...interface{}) {
+	Warnf(format, args...)
+}
+
+func (l Logger) Errorf(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.ErrorLevel, format, args...)
+}
+
+func (l Logger) Fatalf(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.FatalLevel, format, args...)
+	// logger.Exit(1)
+}
+
+func (l Logger) Panicf(format string, args ...interface{}) {
+	globalLogger.WriteLogf(logrus.PanicLevel, format, args...)
+}
+
+func (l Logger) Trace(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.TraceLevel, "", args...)
+}
+
+func (l Logger) Debug(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.DebugLevel, "", args...)
+}
+
+func (l Logger) Info(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.InfoLevel, "", args...)
+}
+
+func (l Logger) Print(args ...interface{}) {
+	globalLogger.WritePrintf("", args...)
+}
+
+func (l Logger) Warn(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.WarnLevel, "", args...)
+}
+
+func (l Logger) Warning(args ...interface{}) {
+	Warn(args...)
+}
+
+func (l Logger) Error(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.ErrorLevel, "", args...)
+}
+
+func (l Logger) Fatal(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.FatalLevel, "", args...)
+	// logger.Exit(1)
+}
+
+func (l Logger) Panic(args ...interface{}) {
+	globalLogger.WriteLogf(logrus.PanicLevel, "", args...)
+}
+
+func (l Logger) Traceln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.TraceLevel, args...)
+}
+
+func (l Logger) Debugln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.DebugLevel, args...)
+}
+
+func (l Logger) Infoln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.InfoLevel, args...)
+}
+
+func (l Logger) Println(args ...interface{}) {
+	globalLogger.WritePrintln(args...)
+}
+
+func (l Logger) Warnln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.WarnLevel, args...)
+}
+
+func (l Logger) Warningln(args ...interface{}) {
+	Warnln(args...)
+}
+
+func (l Logger) Errorln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.ErrorLevel, args...)
+}
+
+func (l Logger) Fatalln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.FatalLevel, args...)
+	// logger.Exit(1)
+}
+
+func (l Logger) Panicln(args ...interface{}) {
+	globalLogger.WriteLogln(logrus.PanicLevel, args...)
+}
+
+func GetLogger() Logger {
+	return globalLogger
 }

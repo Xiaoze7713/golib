@@ -12,11 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"git.singularity-ai.com/backend/library/log"
-	"github.com/BurntSushi/toml"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/BurntSushi/toml"
+
+	"git.singularity-ai.com/backend/library/arch/web"
+	"git.singularity-ai.com/backend/library/log"
 )
 
 type TokenConfig struct {
@@ -52,8 +55,10 @@ func InitToken(filePath string) {
 	}
 }
 
-func VerifyToken(token string) (TokenData, error) {
+func VerifyToken(ctx *web.WebContext, token string) (TokenData, error) {
+
 	u := "https://" + tokenConfig.Host + "/token/verify"
+
 	body := struct {
 		Data struct {
 			Token string `json:"token"`
@@ -66,20 +71,27 @@ func VerifyToken(token string) (TokenData, error) {
 		},
 	}
 	bodyByte, _ := json.Marshal(body)
-	resp, err := http.Post(u, "application/json", bytes.NewReader(bodyByte))
+
+	request, _ := http.NewRequest("POST", u, bytes.NewReader(bodyByte))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("trace_id", ctx.SerializeSpanContext())
+
+	resp, err := http.DefaultClient.Do(request)
+
 	if err != nil {
-		log.Errorf("Verify Token failed, err:%v", err)
+		ctx.Errorf("Verify Token failed, err:%v", err)
 		return TokenData{}, err
 	}
 	if resp.StatusCode != 200 {
-		log.Errorf("Verify Token failed, errno:%v,errmsg:%v", resp.StatusCode, resp.Status)
+		ctx.Errorf("Verify Token failed, errno:%v,errmsg:%v", resp.StatusCode, resp.Status)
 		return TokenData{}, err
 	}
+
 	b, _ := io.ReadAll(resp.Body)
 	var respBody TokenResp
 	json.Unmarshal(b, &respBody)
 	if respBody.Code != 200 {
-		log.Warnf("Verify Token failed, errno:%v,errmsg:%v", respBody.Code, respBody.CodeMsg)
+		ctx.Warnf("Verify Token failed, errno:%v,errmsg:%v", respBody.Code, respBody.CodeMsg)
 		return TokenData{}, errors.New(respBody.CodeMsg)
 	}
 	return respBody.RespData, nil

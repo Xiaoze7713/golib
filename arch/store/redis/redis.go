@@ -10,54 +10,54 @@ package redis
 import (
 	rds "github.com/gomodule/redigo/redis"
 
-	"git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/arch/web"
 )
 
-func Get(key string) (string, error) {
-	return sampleDoString("GET", key)
+func Get(ctx *web.WebContext, key string) (string, error) {
+	return sampleDoString(ctx, "GET", key)
 }
 
-func Set(key, value string, ttl int64) error {
+func Set(ctx *web.WebContext, key, value string, ttl int64) error {
 	var err error
 	if ttl > 0 {
-		_, err = sampleDo("SET", key, value, "EX", ttl)
+		_, err = sampleDo(ctx, "SET", key, value, "EX", ttl)
 	} else {
-		_, err = sampleDo("SET", key, value)
+		_, err = sampleDo(ctx, "SET", key, value)
 	}
 	return err
 }
 
-func SetNx(key, value string, ttl int64) (interface{}, error) {
+func SetNx(ctx *web.WebContext, key, value string, ttl int64) (interface{}, error) {
 	var err error
 	var resp interface{}
 	if ttl > 0 {
-		resp, err = sampleDo("SET", key, value, "EX", ttl, "NX")
+		resp, err = sampleDo(ctx, "SET", key, value, "EX", ttl, "NX")
 	} else {
-		resp, err = sampleDo("SET", key, value, "NX")
+		resp, err = sampleDo(ctx, "SET", key, value, "NX")
 	}
 	return resp, err
 }
 
-func Del(key string) error {
-	_, err := sampleDo("DEL", key)
+func Del(ctx *web.WebContext, key string) error {
+	_, err := sampleDo(ctx, "DEL", key)
 	if err != nil {
-		log.Fatalf("Del err=%v", err)
+		ctx.Fatalf("Del err=%v", err)
 	}
 	return err
 }
 
-func Incr(key string) (int64, error) {
-	return sampleDoInt64("INCR", key)
+func Incr(ctx *web.WebContext, key string) (int64, error) {
+	return sampleDoInt64(ctx, "INCR", key)
 }
 
-func Incrby(key string, num int) (int64, error) {
-	return sampleDoInt64("INCRBY", key, num)
+func Incrby(ctx *web.WebContext, key string, num int) (int64, error) {
+	return sampleDoInt64(ctx, "INCRBY", key, num)
 }
 
 // Expire
 // 当key的值为数字时 返回value为int64,
 // 当key的值非数字时，返回value为string
-func Expire(key string, ttl int) (interface{}, error) {
+func Expire(ctx *web.WebContext, key string, ttl int) (interface{}, error) {
 	var params []interface{}
 	var method string
 
@@ -69,7 +69,7 @@ func Expire(key string, ttl int) (interface{}, error) {
 		params = append(params, ttl)
 	}
 
-	value, err := sampleDo(method, params...)
+	value, err := sampleDo(ctx, method, params...)
 	if err != nil {
 		return "", err
 	}
@@ -77,53 +77,53 @@ func Expire(key string, ttl int) (interface{}, error) {
 	return value, nil
 }
 
-func Rpush(queue, value string) error {
-	_, err := sampleDo("RPUSH", queue, value)
+func Rpush(ctx *web.WebContext, queue, value string) error {
+	_, err := sampleDo(ctx, "RPUSH", queue, value)
 	return err
 }
 
-func Lpop(queue string) (string, error) {
-	return sampleDoString("LPOP", queue)
+func Lpop(ctx *web.WebContext, queue string) (string, error) {
+	return sampleDoString(ctx, "LPOP", queue)
 }
 
-func HSet(key, field, value string) error {
+func HSet(ctx *web.WebContext, key, field, value string) error {
 	var err error
-	_, err = sampleDo("HSET", key, field, value)
+	_, err = sampleDo(ctx, "HSET", key, field, value)
 	return err
 }
 
-func HGet(key, field string) (string, error) {
-	return sampleDoString("HGET", key, field)
+func HGet(ctx *web.WebContext, key, field string) (string, error) {
+	return sampleDoString(ctx, "HGET", key, field)
 }
 
-func HDel(key string, field string) (string, error) {
-	return sampleDoString("HDEL", key, field)
+func HDel(ctx *web.WebContext, key string, field string) (string, error) {
+	return sampleDoString(ctx, "HDEL", key, field)
 }
 
-func SAdd(key string, data []string) error {
+func SAdd(ctx *web.WebContext, key string, data []string) error {
 	var params []interface{}
 	params = append(params, key)
 	for _, value := range data {
 		params = append(params, value)
 	}
-	_, err := sampleDo("SADD", params...)
+	_, err := sampleDo(ctx, "SADD", params...)
 	return err
 }
 
-func SIsMember(key string, value string) (int, error) {
-	return sampleDoInt("SISMEMBER", key, value)
+func SIsMember(ctx *web.WebContext, key string, value string) (int, error) {
+	return sampleDoInt(ctx, "SISMEMBER", key, value)
 }
 
-func SMembers(key string) ([]string, error) {
-	return rds.Strings(sampleDo("SMEMBERS", key))
+func SMembers(ctx *web.WebContext, key string) ([]string, error) {
+	return rds.Strings(sampleDo(ctx, "SMEMBERS", key))
 }
 
-func SRem(key string, data []string) error {
+func SRem(ctx *web.WebContext, key string, data []string) error {
 	var params []interface{}
 	params = append(params, key)
 	for _, value := range data {
 		params = append(params, value)
 	}
-	_, err := sampleDo("SREM", params...)
+	_, err := sampleDo(ctx, "SREM", params...)
 	return err
 }

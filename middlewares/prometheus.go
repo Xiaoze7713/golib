@@ -8,12 +8,14 @@
 package middlewares
 
 import (
-	"git.singularity-ai.com/backend/library/env"
-	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"git.singularity-ai.com/backend/library/env"
 )
 
 const (

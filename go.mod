@@ -76,4 +76,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99 // indirect
 )
 
-replace github.com/xutils/lib-common v0.0.0 => github.com/471641513/lib-common v1.0.3
+replace github.com/xutils/lib-common v0.0.0 => github.com/Xiaoze7713/lib-common v1.0.3

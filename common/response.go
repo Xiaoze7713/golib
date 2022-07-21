@@ -8,8 +8,9 @@
 package common
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"git.singularity-ai.com/backend/library/arch/web"
 )
 
 type Resp struct {
@@ -20,17 +21,17 @@ type Resp struct {
 }
 
 // Success 通用格式化成功返回
-func Success(ctx *gin.Context, data interface{}) {
+func Success(ctx *web.WebContext, data interface{}) {
 	Common(ctx, http.StatusOK, 200, "success", data)
 }
 
 // Failed 通用格式化错误返回
-func Failed(ctx *gin.Context, errno int, errmsg string, data interface{}) {
+func Failed(ctx *web.WebContext, errno int, errmsg string, data interface{}) {
 	Common(ctx, http.StatusOK, errno, errmsg, data)
 }
 
 // Common 通用格式化错误返回
-func Common(ctx *gin.Context, httpCode int, errno int, errmsg string, data interface{}) {
+func Common(ctx *web.WebContext, httpCode int, errno int, errmsg string, data interface{}) {
 	traceId := ctx.GetString("traceID")
 	resp := Resp{
 		traceId,

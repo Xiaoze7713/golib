@@ -99,6 +99,11 @@ func RunMode() string {
 	return envRunMode
 }
 
+// IsDebug 是否为debug模式
+func IsDebug() bool {
+	return RunMode() == _DefaultRunMode
+}
+
 // SetConfDirName 设置配置文件根目录名
 func SetConfDirName(confDirName string) {
 	envConfDirName = confDirName

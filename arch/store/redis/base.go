@@ -10,49 +10,49 @@ package redis
 import (
 	rds "github.com/gomodule/redigo/redis"
 
-	"git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/arch/web"
 )
 
-func sampleDo(method string, args ...interface{}) (reply interface{}, err error) {
+func sampleDo(ctx *web.WebContext, method string, args ...interface{}) (reply interface{}, err error) {
 	conn := client.C.Get()
 	defer func(conn rds.Conn) {
 		err := conn.Close()
 		if err != nil {
-			log.Fatalf("close conn err=%v", err)
+			ctx.Fatalf("close conn err=%v", err)
 		}
 	}(conn)
 	return conn.Do(method, args...)
 }
 
-func sampleDoInt(method string, args ...interface{}) (reply int, err error) {
-	reply, err = rds.Int(sampleDo(method, args...))
+func sampleDoInt(ctx *web.WebContext, method string, args ...interface{}) (reply int, err error) {
+	reply, err = rds.Int(sampleDo(ctx, method, args...))
 	if err == rds.ErrNil {
 		return 0, nil
 	}
 	if err != nil {
-		log.Fatalf("redis err=%v", err)
+		ctx.Fatalf("redis err=%v", err)
 	}
 	return
 }
 
-func sampleDoInt64(method string, args ...interface{}) (reply int64, err error) {
-	reply, err = rds.Int64(sampleDo(method, args...))
+func sampleDoInt64(ctx *web.WebContext, method string, args ...interface{}) (reply int64, err error) {
+	reply, err = rds.Int64(sampleDo(ctx, method, args...))
 	if err == rds.ErrNil {
 		return 0, nil
 	}
 	if err != nil {
-		log.Fatalf("redis err=%v", err)
+		ctx.Fatalf("redis err=%v", err)
 	}
 	return
 }
 
-func sampleDoString(method string, args ...interface{}) (reply string, err error) {
-	reply, err = rds.String(sampleDo(method, args...))
+func sampleDoString(ctx *web.WebContext, method string, args ...interface{}) (reply string, err error) {
+	reply, err = rds.String(sampleDo(ctx, method, args...))
 	if err == rds.ErrNil {
 		return "", nil
 	}
 	if err != nil {
-		log.Fatalf("redis err=%v", err)
+		ctx.Fatalf("redis err=%v", err)
 	}
 	return
 }

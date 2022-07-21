@@ -10,20 +10,18 @@ package middlewares
 import (
 	"bytes"
 	"fmt"
-	"git.singularity-ai.com/backend/library/common"
-	"git.singularity-ai.com/backend/library/env"
-	"git.singularity-ai.com/backend/library/log"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"time"
+
+	"git.singularity-ai.com/backend/library/arch/web"
+	"git.singularity-ai.com/backend/library/env"
 )
 
-func WebLogger() gin.HandlerFunc {
+func WebLogger() web.WebHandlerFunc {
 
-	return func(c *gin.Context) {
+	return func(c *web.WebContext) {
 
 		// 请求路由
 		reqUri := c.Request.RequestURI
@@ -34,13 +32,10 @@ func WebLogger() gin.HandlerFunc {
 		start := time.Now()
 		startTime := start.Format("2006-01-02 15:04:05")
 
-		// traceID
-		traceID := GenLogIDFromRequest(c)
-		c.Set("traceID", traceID)
-
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
 
+		c.Writer.Header().Set("X_TRACE_ID", c.SerializeSpanContext())
 		// 处理请求
 		c.Next()
 
@@ -62,7 +57,7 @@ func WebLogger() gin.HandlerFunc {
 		// 本地IP
 		localIP := env.LocalIP()
 
-		//hostname
+		// hostname
 		hostname, err := os.Hostname()
 		if err != nil {
 			hostname = "unknow"
@@ -73,7 +68,7 @@ func WebLogger() gin.HandlerFunc {
 
 		header := c.Request.Header
 
-		//cookie
+		// cookie
 		cookies := c.Request.Cookies()
 		vs := make([]string, 0, len(cookies))
 		for _, c := range cookies {
@@ -84,51 +79,31 @@ func WebLogger() gin.HandlerFunc {
 		// get|post 数据
 		form := c.Request.Form.Encode()
 
-		//errno
+		// errno
 		errno, isExit := c.Get("errno")
 		if !isExit {
 			errno = 0
 		}
 
-		//errmsg
+		// errmsg
 		errmsg, isExit := c.Get("errmsg")
 		if !isExit {
 			errmsg = ""
 		}
 
-		//日志格式
-		msg := fmt.Sprintf("traceid[%s] sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] header[%v] cookie[%s] body[%s] form[%s] errno[%d] errmsg[%s]",
-			traceID, startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, header, cookie, string(body), form, errno.(int), errmsg)
+		// 日志格式
+		msg := fmt.Sprintf("sTime[%s] cost[%s] method[%s] uri[%s] code[%d] clientip[%s] localip[%s] hostname[%s] idc[%s] header[%v] cookie[%s] body[%s] form[%s] errno[%d] errmsg[%s]",
+			startTime, cost, reqMethod, reqUri, statusCode, clientIP, localIP, hostname, idc, header, cookie, string(body), form, errno.(int), errmsg)
 
 		if statusCode > 499 {
-			log.Error(msg)
+			c.Error(msg)
 		} else if statusCode > 399 {
-			log.Warn(msg)
+			c.Warn(msg)
 		} else if errno != 0 && errno != 200 {
-			log.Warn(msg)
+			c.Warn(msg)
 		} else {
-			log.Info(msg)
+			c.Info(msg)
 		}
-
+		c.Fin()
 	}
-}
-
-// GenLogIDFromRequest 生成日志ID
-// 优先级 header中X_TRACEID > header中traceid > 表单中traceid > 自己生成
-func GenLogIDFromRequest(c *gin.Context) string {
-	request := c.Request
-	form := request.URL.Query()
-	// 上下游header透传时
-	if traceID := strings.TrimSpace(request.Header.Get("X_TRACEID")); traceID != "" {
-		return traceID
-	}
-	if traceID := strings.TrimSpace(request.Header.Get("traceid")); traceID != "" {
-		return traceID
-	}
-	// 上下游querystring透传时
-	if traceID := strings.TrimSpace(form.Get("traceid")); traceID != "" {
-		return traceID
-	}
-
-	return strconv.Itoa(common.GetSFInstance().GetUniqueId())
 }

@@ -5,23 +5,26 @@
  * @Version: 1.0.0
  * @Date: 2022/4/12 3:35 PM
  */
-package webserver
+package web
 
 import (
 	"context"
-	"github.com/DeanThompson/ginpprof"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/DeanThompson/ginpprof"
+	"github.com/gin-gonic/gin"
 )
 
 // WebServer 基于http协议的服务
 // 这里的实现是基于gin框架，封装了gin的所有的方法
 type WebServer struct {
-	// 继承gin引擎本身的其他方法
+	// 重写所有的路由相关的方法
+	*WebRoute
+	// 继承引擎本身的其他方法
 	*gin.Engine
 }
 
@@ -31,9 +34,13 @@ func NewWebServer(mode string) *WebServer {
 
 	server := &WebServer{
 		Engine: gin.New(),
+		WebRoute: &WebRoute{
+			root: true,
+		},
 	}
-
-	//visit http://127.0.0.1:port/debug/pprof/ and you'll see what you want
+	server.WebRoute.server = server
+	server.WebRoute.RouterGroup = &server.Engine.RouterGroup
+	// visit http://127.0.0.1:port/debug/pprof/ and you'll see what you want
 	if mode == "debug" {
 		ginpprof.Wrap(server.Engine)
 	}
@@ -98,4 +105,42 @@ func (webServer *WebServer) RunGrace(addr string, cancelFuncs []context.CancelFu
 	}
 	log.Println("Server exist")
 	return
+}
+
+// Delims 设置模板的分解符
+// 重写gin方法
+func (webServer *WebServer) Delims(left, right string) *WebServer {
+	webServer.Engine.Delims(left, right)
+	return webServer
+}
+
+// SecureJsonPrefix sets the secureJsonPrefix used in Context.SecureJSON.
+// 重写gin方法
+func (webServer *WebServer) SecureJsonPrefix(prefix string) *WebServer {
+	webServer.SecureJsonPrefix(prefix)
+	return webServer
+}
+
+// HandleContext re-enter a context that has been rewritten.
+// This can be done by setting c.Request.URL.Path to your new target.
+// Disclaimer: You can loop yourself to death with this, use wisely.
+/*func (webServer *WebServer) HandleContext(wc *WebContext) {
+	webServer.Engine.HandleContext(wc.XContext)
+}*/
+
+// NoRoute adds handlers for NoRoute. It return a 404 code by default.
+// 重写gin方法
+func (webServer *WebServer) NoRoute(handlers ...WebHandlerFunc) {
+	webServer.Engine.NoRoute(decorateWebHandlers(handlers)...)
+}
+
+// NoMethod sets the handlers called when... TODO.
+// 重写gin方法
+func (webServer *WebServer) NoMethod(handlers ...WebHandlerFunc) {
+	webServer.Engine.NoMethod(decorateWebHandlers(handlers)...)
+}
+
+// Use adds middleware to the group, see example code in github.
+func (webServer *WebServer) Use(middleware ...WebHandlerFunc) WebRouter {
+	return webServer.WebRoute.Use(middleware...)
 }

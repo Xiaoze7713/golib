@@ -9,27 +9,29 @@
 package event
 
 import (
-	"git.singularity-ai.com/backend/library/common"
-	jsoniter "github.com/json-iterator/go"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+
+	"git.singularity-ai.com/backend/library/common"
 )
 
 const (
 	SystemDefault = 0
-	TypeCreateWs  = 1 //长链建立事件
-	TypeLoginIn   = 2 //用户登录事件
-	TypeCloseWs   = 3 //长链断开事件
+	TypeCreateWs  = 1 // 长链建立事件
+	TypeLoginIn   = 2 // 用户登录事件
+	TypeCloseWs   = 3 // 长链断开事件
 
 	SystemVideo    = 1000
-	TypeVideoStart = 1001 //用户建立RTC连接,开始视频
-	TypeVideoHeart = 1002 //视频心跳事件
-	TypeVideoEnd   = 1003 //视频结束事件
+	TypeVideoStart = 1001 // 用户建立RTC连接,开始视频
+	TypeVideoHeart = 1002 // 视频心跳事件
+	TypeVideoEnd   = 1003 // 视频结束事件
 
 	SystemTask = 2000
 
-	SystemAppTrans = 3000 //app透传
+	SystemAppTrans = 3000 // app透传
 
-	SystemAppFeatures = 4000 //app功能api
+	SystemAppFeatures = 4000 // app功能api
 	TypeSendImMessage = 4002
 	TypeMarkMessage   = 4003
 )

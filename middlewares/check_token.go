@@ -9,9 +9,9 @@ package middlewares
 
 import (
 	"errors"
-	"git.singularity-ai.com/backend/library/log"
+
+	"git.singularity-ai.com/backend/library/arch/web"
 	"git.singularity-ai.com/backend/library/service/token"
-	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -26,22 +26,22 @@ var Error2CodeIns = map[error]int{
 	ErrorServerTokenInvalid: 10003,
 }
 
-func CheckToken() gin.HandlerFunc {
+func CheckToken() web.WebHandlerFunc {
 
-	return func(c *gin.Context) {
-		//前置校验
-		t := c.GetHeader("Token")
+	return func(ctx *web.WebContext) {
+		// 前置校验
+		t := ctx.GetHeader("Token")
 		if t == "" {
 			return
 		}
-		data, err := token.VerifyToken(t)
+		data, err := token.VerifyToken(ctx, t)
 		if err != nil {
-			log.Errorf("read token data failed %s,token=%s", err.Error(), t)
+			ctx.Errorf("read token data failed %s,token=%s", err.Error(), t)
 			return
 		}
-		c.Set("userID", data.UserId)
-		c.Set("robotID", data.RobotId)
+		ctx.Set("userID", data.UserId)
+		ctx.Set("robotID", data.RobotId)
 
-		c.Next()
+		ctx.Next()
 	}
 }

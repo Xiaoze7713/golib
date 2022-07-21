@@ -5,23 +5,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	xlog_base2 "git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
-	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
-	"git.singularity-ai.com/backend/library/xContext/base_if/xspan_base"
-	"git.singularity-ai.com/backend/library/xContext/base_if/xtrace_base"
-	"git.singularity-ai.com/backend/library/xContext/loggers/null_log"
-	"git.singularity-ai.com/backend/library/xContext/metrics/null_metric"
+	"io/ioutil"
+	"net/http"
+	"runtime/debug"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-stack/stack"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
-	"io/ioutil"
-	"net/http"
-	"runtime/debug"
-	"strings"
-	"time"
+
+	xlog_base2 "git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
+	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
+	"git.singularity-ai.com/backend/library/xContext/base_if/xspan_base"
+	"git.singularity-ai.com/backend/library/xContext/base_if/xtrace_base"
+	"git.singularity-ai.com/backend/library/xContext/loggers/null_log"
+	"git.singularity-ai.com/backend/library/xContext/metrics/null_metric"
 )
 
 const (
@@ -97,15 +99,15 @@ func emptyDurFunc(x *XContext) time.Duration {
 	return 0
 }
 
-//type ContextOptions interface {
+// type ContextOptions interface {
 //	Apply() error
-//}
+// }
 //
-//type NullTraceID struct {
+// type NullTraceID struct {
 //	ContextOptions
-//}
+// }
 //
-//func (NullTraceID) Apply(strFunc GetIDType) {
+// func (NullTraceID) Apply(strFunc GetIDType) {
 //	if strFunc != nil {
 //		traceIDFunc = strFunc
 //		return
@@ -113,27 +115,27 @@ func emptyDurFunc(x *XContext) time.Duration {
 //	traceIDFunc = func(xContext *XContext) string {
 //		return ""
 //	}
-//}
+// }
 //
-//type NullSpanID struct {
+// type NullSpanID struct {
 //	ContextOptions
-//}
+// }
 //
-//func (NullSpanID) Apply() {
+// func (NullSpanID) Apply() {
 //	spanIDFunc = func(xContext *XContext) string {
 //		return ""
 //	}
-//}
+// }
 //
-//type NullDur struct {
+// type NullDur struct {
 //	ContextOptions
-//}
+// }
 //
-//func (NullDur) Apply() {
+// func (NullDur) Apply() {
 //	durFunc = func(xContext *XContext) time.Duration {
 //		return -1
 //	}
-//}
+// }
 //
 
 func Init(logger xlog_base2.LoggerIF,
@@ -143,19 +145,19 @@ func Init(logger xlog_base2.LoggerIF,
 	if logger != nil {
 		mLogger = logger
 	} else {
-		fmt.Printf("warning! not set logger")
+		fmt.Println("warning! not set logger")
 		mLogger = null_log.LoggerNull{}
 	}
 	if trace != nil {
 		mTrace = trace
 	} else {
-		fmt.Printf("warning! not set trace")
+		fmt.Println("warning! not set trace")
 		mTrace = xtrace_base.XTraceNoop{}
 	}
 	if metrics != nil {
 		mMetric = metrics
 	} else {
-		fmt.Printf("warning! not set metric")
+		fmt.Println("warning! not set metric")
 		mMetric = null_metric.MetricsNull{}
 	}
 	traceIDFunc = traceF
@@ -204,13 +206,13 @@ func (x *XContext) OperationName() string {
 }
 
 //
-//type GXContext struct {
+// type GXContext struct {
 //	gin.Context
 //	xlog_base.LoggerIF
 //	xmetric_base.MetricsIF
 //	opentracing.Span
 //	CancelList []context.CancelFunc
-//}
+// }
 
 var notGrandFather = errors.New("not grand father")
 
@@ -241,7 +243,7 @@ func NewXContextWithContextString(ctx context.Context, operationName, spanCtxStr
 		Context:   ctx,
 		LoggerIF:  mLogger,
 		MetricsIF: mMetric,
-		//lock:      &sync.RWMutex{},
+		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = newSpanWithString(spanCtxString, operationName)
 	return xCtx
@@ -252,7 +254,7 @@ func NewXContextWithContext(ctx context.Context, operationName string) *XContext
 		Context:   ctx,
 		LoggerIF:  mLogger,
 		MetricsIF: mMetric,
-		//lock:      &sync.RWMutex{},
+		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
@@ -265,7 +267,7 @@ func NewXContext(operationName string) *XContext {
 		Context:   context.Background(),
 		LoggerIF:  mLogger,
 		MetricsIF: mMetric,
-		//lock:      &sync.RWMutex{},
+		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
@@ -281,7 +283,7 @@ func NewChildXContext(parents *XContext, operationName string) *XContext {
 		LoggerIF:   mLogger,
 		MetricsIF:  mMetric,
 		CancelList: []context.CancelFunc{},
-		//lock:       parents.lock,
+		// lock:       parents.lock,
 	}
 	child.Span = mTrace.StartSpan(operationName,
 		opentracing.ChildOf(parents.Span.Context()),
@@ -296,7 +298,7 @@ func NewFollowXContext(origin *XContext, operationName string) *XContext {
 		LoggerIF:   mLogger,
 		MetricsIF:  mMetric,
 		CancelList: []context.CancelFunc{},
-		//lock:       &sync.RWMutex{},
+		// lock:       &sync.RWMutex{},
 	}
 	brother.Span = mTrace.StartSpan(operationName,
 		opentracing.FollowsFrom(origin.Span.Context()),
@@ -314,7 +316,7 @@ func (x *XContext) SpanID() IDType {
 }
 
 func (x *XContext) TraceID() IDType {
-	//return x.Load(TraceID)
+	// return x.Load(TraceID)
 	if traceIDFunc == nil {
 		return emptyIDFunc(x)
 	}
@@ -361,7 +363,7 @@ func (x *XContext) TagNames2PLabels(tags ...ext.StringTagName) prometheus.Labels
 	pl := prometheus.Labels{}
 	for _, tag := range tags {
 		pl[string(tag)] = x.LoadString(tag)
-		//x.Debug(string(tag), x.LoadString(tag))
+		// x.Debug(string(tag), x.LoadString(tag))
 	}
 	return pl
 }
@@ -508,8 +510,8 @@ func (x *XContext) Fatalf(format string, args ...interface{}) {
 func (x *XContext) Fin() {
 	x.Span.FinishWithOptions(opentracing.FinishOptions{
 		FinishTime: time.Time{},
-		//LogRecords:  nil,
-		//BulkLogData: nil,
+		// LogRecords:  nil,
+		// BulkLogData: nil,
 	})
 	for _, cancel := range x.CancelList {
 		cancel()
@@ -526,7 +528,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
 			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			// ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
@@ -548,7 +550,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		ctx.LogFields("req", "req_in")
 
-		//r = r.WithContext(lc)
+		// r = r.WithContext(lc)
 		// request in
 
 		defer func() {
@@ -565,7 +567,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 		h.ServeHTTP(w, r)
 		serverStartCtx.Fin()
 	})
-	//x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
+	// x.SpanIF.SetTag(, x.Load(ext.HTTPMethod))
 }
 
 func DoRequest() gin.HandlerFunc {
@@ -578,12 +580,12 @@ func DoRequest() gin.HandlerFunc {
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
 			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			// ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
-		//gc.Set("RequestID", traceID)
+		// gc.Set("RequestID", traceID)
 		body, _ := ioutil.ReadAll(gc.Request.Body)
 		bodyStr := string(body)
 		// 写回
@@ -610,8 +612,8 @@ func DoRequest() gin.HandlerFunc {
 		}()
 		gc.Set("xContext", ctx)
 		gc.Next()
-		//ctxI, _ := gc.Get("xContext")
-		//ctx = ctxI.(*XContext)
+		// ctxI, _ := gc.Get("xContext")
+		// ctx = ctxI.(*XContext)
 		resp, ok := gc.Get("resp")
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))

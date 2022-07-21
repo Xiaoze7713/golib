@@ -10,22 +10,22 @@ package app
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/arch/rpcserver"
-	"git.singularity-ai.com/backend/library/arch/store/mysql"
-	"git.singularity-ai.com/backend/library/arch/store/redis"
-	"git.singularity-ai.com/backend/library/arch/webserver"
-	"git.singularity-ai.com/backend/library/env"
-	"git.singularity-ai.com/backend/library/kafka"
-	logger "git.singularity-ai.com/backend/library/log"
-	"git.singularity-ai.com/backend/library/service"
-
-	//"git.singularity-ai.com/backend/ws_service/models/service"
-	"github.com/BurntSushi/toml"
-	"github.com/gin-gonic/gin"
 	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/BurntSushi/toml"
+	"github.com/gin-gonic/gin"
+
+	"git.singularity-ai.com/backend/library/arch/rpc"
+	"git.singularity-ai.com/backend/library/arch/store/mysql"
+	"git.singularity-ai.com/backend/library/arch/store/redis"
+	"git.singularity-ai.com/backend/library/arch/web"
+	"git.singularity-ai.com/backend/library/env"
+	"git.singularity-ai.com/backend/library/kafka"
+	logger "git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/service"
 )
 
 // AppConfig struct
@@ -55,10 +55,10 @@ type App struct {
 	config *AppConfig
 
 	// webEngine 目前web引擎使用gin
-	webServer *webserver.WebServer
+	webServer *web.WebServer
 
 	// RPCServer
-	rpcServer *rpcserver.RPCServer
+	rpcServer *rpc.RPCServer
 }
 
 // DefaultApp 默认的App。这个默认的APP做了很多定制，如需要自定义，可以自己创建。
@@ -122,14 +122,14 @@ func (app *App) InitWithConfig(config *AppConfig) *App {
 	}
 
 	if app.config.HTTPListen != "" {
-		app.webServer = webserver.NewWebServer(app.config.RunMode)
+		app.webServer = web.NewWebServer(app.config.RunMode)
 		if len(DefaultWebServerMiddlewares) > 0 {
 			app.webServer.Use(DefaultWebServerMiddlewares...)
 		}
 	}
 
 	if app.config.RPCListen != "" {
-		app.rpcServer = rpcserver.NewRPCServer()
+		app.rpcServer = rpc.NewRPCServer()
 	}
 
 	app.InitLog()
@@ -143,18 +143,18 @@ func (app *App) InitWithConfig(config *AppConfig) *App {
 
 // DefaultWebServerMiddlewares 默认的Http Server中间件
 // todo:多加一个recovery来保证业务日志崩溃后依旧有访问日志
-var DefaultWebServerMiddlewares = []gin.HandlerFunc{
-	//gin.Logger(),
-	gin.Recovery(),
+var DefaultWebServerMiddlewares = []web.WebHandlerFunc{
+	// gin.Logger(),
+	web.GinHandler2WebHandler(gin.Recovery()),
 }
 
 // WebServer 获取WebServer的指针
-func (app *App) WebServer() *webserver.WebServer {
+func (app *App) WebServer() *web.WebServer {
 	return app.webServer
 }
 
 // RPCServer 获取RPCServer的指针
-func (app *App) RPCServer() *rpcserver.RPCServer {
+func (app *App) RPCServer() *rpc.RPCServer {
 	return app.rpcServer
 }
 

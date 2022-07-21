@@ -9,10 +9,11 @@ package log
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/env"
-	"github.com/BurntSushi/toml"
-	"log"
 	"os"
+
+	"github.com/BurntSushi/toml"
+
+	"git.singularity-ai.com/backend/library/env"
 )
 
 var defaultLogConfigPath = "conf/log.toml"
@@ -25,35 +26,36 @@ type LogConfig struct {
 	Stdout      bool   `toml:"stdout"`
 }
 
-var loggerDef *Logger
-var loggerWf *Logger
+var globalConfig LogConfig
+
+var defaultLoggerConfig = LogConfig{
+	"singularity",
+	1,
+	48,
+	"warn",
+	false,
+}
 
 func Init(filePath string) {
-	var config LogConfig
 	if filePath == "" {
 		filePath = defaultLogConfigPath
 	}
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Println("log.toml not exist")
-		return
+		fmt.Println("log.toml not exist")
+		globalConfig = defaultLoggerConfig
+	} else {
+		if _, err = toml.DecodeFile(filePath, &globalConfig); err != nil {
+			fmt.Sprintf("Can't load config file, %s", err.Error())
+			globalConfig = defaultLoggerConfig
+		}
 	}
-	if _, err := toml.DecodeFile(filePath, &config); err != nil {
-		panic(fmt.Sprintf("Can't load config file, %s", err.Error()))
-	}
+
 	// 初始化日志目录
 	initLogDir(env.LogRootPath())
 	if env.AppName() == "unknown" {
-		env.SetAppName(config.AppName)
+		env.SetAppName(globalConfig.AppName)
 	}
-
-	loggerDef = &Logger{
-		NewLogger(config, ""),
-	}
-
-	loggerWf = &Logger{
-		NewLogger(config, ".wf"),
-	}
-
+	initGlobalLogger(globalConfig)
 }
 
 func initLogDir(path string) error {
