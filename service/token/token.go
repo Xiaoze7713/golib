@@ -28,8 +28,9 @@ type TokenConfig struct {
 }
 
 type TokenData struct {
-	UserId  string `json:"userId"`
-	RobotId string `json:"robotId"`
+	UserId   string `json:"userId"`
+	RobotId  string `json:"robotId"`
+	UniqueId string `json:"uniqueId"`
 }
 
 type TokenResp struct {

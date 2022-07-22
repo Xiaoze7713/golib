@@ -41,6 +41,7 @@ func CheckToken() web.WebHandlerFunc {
 		}
 		ctx.Set("userID", data.UserId)
 		ctx.Set("robotID", data.RobotId)
+		ctx.Set("uniqueID", data.UniqueId)
 
 		ctx.Next()
 	}

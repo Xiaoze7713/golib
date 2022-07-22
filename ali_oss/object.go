@@ -10,11 +10,14 @@ package ali_oss
 import (
 	"bytes"
 	"errors"
-	"git.singularity-ai.com/backend/library/log"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+
+	"git.singularity-ai.com/backend/library/log"
 )
 
 func (b *Bucket) DownloadObject(object string) ([]byte, error) {
@@ -36,7 +39,7 @@ func (b *Bucket) DownloadObject(object string) ([]byte, error) {
 func (b *Bucket) DownloadObjectToFile(object, file string) error {
 	// check 文件是否已存在
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		//文件不存在则新建
+		// 文件不存在则新建
 		fd, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0660)
 		if err != nil {
 			log.Errorln("open file failed,err=%v", err.Error())
@@ -63,12 +66,12 @@ func (b *Bucket) DownloadObjectToFile(object, file string) error {
 	return nil
 }
 
-func (b *Bucket) UploadObject(object string, data []byte) error {
+func (b *Bucket) UploadObject(object string, data []byte, options ...oss.Option) error {
 	if b == nil {
 		log.Errorln("bucket client is nil")
 		return errors.New("bucket client is nil")
 	}
-	err := b.PutObject(object, bytes.NewReader(data))
+	err := b.PutObject(object, bytes.NewReader(data), options...)
 	if err != nil {
 		log.Errorf("PutObject failed, err=%v", err.Error())
 		return err
