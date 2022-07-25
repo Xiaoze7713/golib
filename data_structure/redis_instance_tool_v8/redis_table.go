@@ -27,6 +27,10 @@ func NewTable(businessKey, sep string, client redis.Cmdable) (table *Table, err 
 			sep:     sep,
 		},
 	}
+	if table.MarshalInterface == nil {
+		jm := &MarshalJson{}
+		jm.Apply(&table.RedisToolBase)
+	}
 	return
 }
 

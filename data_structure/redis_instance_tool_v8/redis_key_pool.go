@@ -30,6 +30,10 @@ func NewKeyPool(businessKey, sep string, client redis.Cmdable, nx bool, duration
 		nx,
 		duration,
 	}
+	if keyPool.MarshalInterface == nil {
+		jm := &MarshalJson{}
+		jm.Apply(&keyPool.RedisToolBase)
+	}
 	return
 }
 
@@ -42,7 +46,7 @@ func (m *KeyPool) SelfSep() (sep string) {
 }
 
 func (m *KeyPool) Set(ctx context.Context, key string, valueIF interface{}) (err error) {
-	value, err := m.Marshal(valueIF)
+	value, err := m.MarshalInterface.marshalFunction(valueIF)
 	if err != nil {
 		return err
 	}
@@ -77,7 +81,7 @@ func (m *KeyPool) GetAndUnmarshal(ctx context.Context, key string, ifc interface
 	if err != nil {
 		return err
 	}
-	err = m.UnMarshal(string(resBytes), ifc)
+	err = m.MarshalInterface.unmarshalFunction(resBytes, ifc)
 	if err != nil {
 		return err
 	}

@@ -7,13 +7,19 @@ import (
 )
 
 type RedisToolBase struct {
-	client            redis.Cmdable
-	marshalFunction   func(interface{}) ([]byte, error)
-	unmarshalFunction func([]byte, interface{}) error
-	config            *message_queue.MQConfig
-	selfKey           string
-	sep               string
+	client redis.Cmdable
+	MarshalInterface
+	config  *message_queue.MQConfig
+	selfKey string
+	sep     string
 }
+
+type MarshalInterface interface {
+	marshalFunction(interface{}) ([]byte, error)
+	unmarshalFunction([]byte, interface{}) error
+}
+
+var defaultMarshal = MarshalJson{}
 
 type ToolOption interface {
 	Apply(r *RedisToolBase)
@@ -21,8 +27,9 @@ type ToolOption interface {
 
 func (m *RedisToolBase) Init(conf *message_queue.MQConfig) {
 	m.config = conf
-	if m.marshalFunction == nil {
-		MarshalJson{}.Apply(m)
+	if m.MarshalInterface == nil {
+		json := MarshalJson{}
+		json.Apply(m)
 	}
 }
 
@@ -36,19 +43,15 @@ func (m *RedisToolBase) SelfSep() (sep string) {
 
 type MarshalJson struct{}
 
-func (m MarshalJson) Apply(r *RedisToolBase) {
-	r.marshalFunction = jsoniter.Marshal
-	r.unmarshalFunction = jsoniter.Unmarshal
+func (m *MarshalJson) Apply(r *RedisToolBase) {
+	r.MarshalInterface = m
 }
 
-func (m *RedisToolBase) Marshal(i interface{}) (string, error) {
-	bs, err := m.marshalFunction(i)
-	if err != nil {
-		return "", err
-	}
-	return string(bs), nil
+func (m *MarshalJson) marshalFunction(i interface{}) ([]byte, error) {
+	res, err := jsoniter.Marshal(i)
+	return res, err
 }
 
-func (m *RedisToolBase) UnMarshal(s string, iPtr interface{}) error {
-	return m.unmarshalFunction([]byte(s), iPtr)
+func (m *MarshalJson) unmarshalFunction(bytes []byte, iPtr interface{}) error {
+	return jsoniter.Unmarshal(bytes, iPtr)
 }

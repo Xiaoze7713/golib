@@ -22,6 +22,10 @@ func (m *RedisDelayQueue) Init(msConfig *message_queue.MQConfig) error {
 	m.selfKey = msConfig.Topic
 	m.limit = 100
 	m.config = msConfig
+	if m.MarshalInterface == nil {
+		jm := &MarshalJson{}
+		jm.Apply(&m.RedisToolBase)
+	}
 	return nil
 }
 
