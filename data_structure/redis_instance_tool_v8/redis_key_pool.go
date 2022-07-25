@@ -15,7 +15,7 @@ type KeyPool struct {
 	expire int // second
 }
 
-func NewKeyPool(businessKey, sep string, client *redis.Client, nx bool, duration int) (keyPool *KeyPool, err error) {
+func NewKeyPool(businessKey, sep string, client redis.Cmdable, nx bool, duration int) (keyPool *KeyPool, err error) {
 	if businessKey == "" {
 		xlog.Warn("key pool null business key")
 	}

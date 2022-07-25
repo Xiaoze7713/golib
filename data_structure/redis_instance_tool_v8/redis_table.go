@@ -12,7 +12,7 @@ type Table struct {
 	RedisToolBase
 }
 
-func NewTable(businessKey, sep string, client *redis.Client) (table *Table, err error) {
+func NewTable(businessKey, sep string, client redis.Cmdable) (table *Table, err error) {
 	if businessKey == "" {
 		//err = errors.New("null business key")
 		xlog.Warn("table null business key")

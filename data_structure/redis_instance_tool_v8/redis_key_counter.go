@@ -15,7 +15,7 @@ type Counter struct {
 	//sep      string
 }
 
-func NewCounter(key, sep string, client *redis.Client) (counter *Counter, err error) {
+func NewCounter(key, sep string, client redis.Cmdable) (counter *Counter, err error) {
 	if key == "" {
 		xlog.Warn("counter null business key")
 		//err = errors.New("null business key")

@@ -24,7 +24,7 @@ func (m *RedisQueue) Config() *message_queue.MQConfig {
 	return m.config
 }
 
-func NewQueue(msConfig *message_queue.MQConfig, client *redis.Client) (queue message_queue.MQInstance, err error) {
+func NewQueue(msConfig *message_queue.MQConfig, client redis.Cmdable) (queue message_queue.MQInstance, err error) {
 	if msConfig.Topic == "" {
 		xlog.Warn("queue null business key")
 		//err = errors.New("null business key")

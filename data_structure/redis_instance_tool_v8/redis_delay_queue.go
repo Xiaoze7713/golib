@@ -29,7 +29,7 @@ func (m *RedisDelayQueue) Config() *message_queue.MQConfig {
 	return m.config
 }
 
-func NewDelayQueue(client *redis.Client) (dQueue *RedisDelayQueue, err error) {
+func NewDelayQueue(client redis.Cmdable) (dQueue *RedisDelayQueue, err error) {
 	dQueue = &RedisDelayQueue{
 		RedisToolBase: RedisToolBase{
 			client: client,
