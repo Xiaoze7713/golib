@@ -78,7 +78,9 @@ func (m *KeyPool) Del(ctx context.Context, key string) (err error) {
 
 func (m *KeyPool) GetAndUnmarshal(ctx context.Context, key string, ifc interface{}) (err error) {
 	resBytes, err := m.client.Get(ctx, key).Bytes()
-	if err != nil {
+	if err == redis.Nil {
+		resBytes = []byte{}
+	} else if err != nil {
 		return err
 	}
 	err = m.MarshalInterface.unmarshalFunction(resBytes, ifc)
