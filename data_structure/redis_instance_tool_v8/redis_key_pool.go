@@ -3,7 +3,6 @@ package redis_instance_tool
 import (
 	"context"
 	"errors"
-	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"time"
@@ -43,9 +42,7 @@ func (m *KeyPool) SelfSep() (sep string) {
 }
 
 func (m *KeyPool) Set(ctx context.Context, key string, valueIF interface{}) (err error) {
-	//value, ok := valueIF.(string)
-	//if !ok {
-	value, err := utils.MarshalToString(valueIF)
+	value, err := m.Marshal(valueIF)
 	if err != nil {
 		return err
 	}
@@ -75,12 +72,12 @@ func (m *KeyPool) Del(ctx context.Context, key string) (err error) {
 	return
 }
 
-func (m *KeyPool) GetAndUnmarshalJson(ctx context.Context, key string, ifc interface{}, unmarshal func(s string, ifc interface{}) error) (err error) {
-	resStr, err := m.Get(ctx, key)
+func (m *KeyPool) GetAndUnmarshal(ctx context.Context, key string, ifc interface{}) (err error) {
+	resBytes, err := m.client.Get(ctx, key).Bytes()
 	if err != nil {
 		return err
 	}
-	err = unmarshal(resStr, ifc)
+	err = m.UnMarshal(string(resBytes), ifc)
 	if err != nil {
 		return err
 	}
