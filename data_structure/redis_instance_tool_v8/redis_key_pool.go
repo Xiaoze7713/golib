@@ -74,3 +74,15 @@ func (m *KeyPool) Del(ctx context.Context, key string) (err error) {
 	_, err = m.client.Del(ctx, m.SelfKey(key)).Result()
 	return
 }
+
+func (m *KeyPool) GetAndUnmarshalJson(ctx context.Context, key string, ifc interface{}, unmarshal func(s string, ifc interface{}) error) (err error) {
+	resStr, err := m.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	err = unmarshal(resStr, ifc)
+	if err != nil {
+		return err
+	}
+	return nil
+}
