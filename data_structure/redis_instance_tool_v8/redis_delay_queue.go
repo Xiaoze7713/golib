@@ -64,7 +64,10 @@ func (m *RedisDelayQueue) Add(ctx context.Context, key string, valueIf interface
 		xlog.Errorf("set err %v %v %v", key, value, err)
 		return err
 	}
-	_, err = m.client.Do(ctx, "zadd", m.QueueName(), timeMs, m.ToKey(key)).Result()
+	_, err = m.client.ZAdd(ctx, m.QueueName(), &redis.Z{
+		Score:  float64(timeMs),
+		Member: m.ToKey(key),
+	}).Result()
 	if err != nil {
 		xlog.Errorf("zadd err %v %v %v", key, value, err)
 		return err
@@ -73,7 +76,9 @@ func (m *RedisDelayQueue) Add(ctx context.Context, key string, valueIf interface
 }
 
 func (m *RedisDelayQueue) Count(ctx context.Context, timeMsStart, timeMsEnd int64) (count int, err error) {
-	res, err := m.client.Do(ctx, "zcount", m.QueueName(), timeMsStart, timeMsEnd).Result()
+	min := fmt.Sprintf("%d", timeMsStart)
+	max := fmt.Sprintf("%d", timeMsEnd)
+	res, err := m.client.ZCount(ctx, m.QueueName(), min, max).Result()
 	if err != nil {
 		return 0, err
 	}
