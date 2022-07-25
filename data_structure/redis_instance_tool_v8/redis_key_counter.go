@@ -31,8 +31,7 @@ func NewCounter(key, sep string, client redis.Cmdable) (counter *Counter, err er
 		},
 	}
 	if counter.MarshalInterface == nil {
-		jm := &MarshalJson{}
-		jm.Apply(&counter.RedisToolBase)
+		defaultMarshal.Apply(&counter.RedisToolBase)
 	}
 	return
 }

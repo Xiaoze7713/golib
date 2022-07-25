@@ -17,10 +17,6 @@ type RedisQueue struct {
 func (m *RedisQueue) Init(msConfig *message_queue.MQConfig) error {
 	m.selfKey = msConfig.Topic
 	m.config = msConfig
-	if m.MarshalInterface == nil {
-		jm := &MarshalJson{}
-		jm.Apply(&m.RedisToolBase)
-	}
 	return nil
 }
 
@@ -40,11 +36,15 @@ func NewQueue(msConfig *message_queue.MQConfig, client redis.Cmdable) (queue mes
 		xlog.Error(err)
 		return
 	}
-	queue = &RedisQueue{
+	rQueue := &RedisQueue{
 		RedisToolBase{
 			client: client,
 		},
 	}
+	if rQueue.MarshalInterface == nil {
+		defaultMarshal.Apply(&rQueue.RedisToolBase)
+	}
+	queue = rQueue
 	err = queue.Init(msConfig)
 	return
 }

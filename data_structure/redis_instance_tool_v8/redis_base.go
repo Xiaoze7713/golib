@@ -15,11 +15,11 @@ type RedisToolBase struct {
 }
 
 type MarshalInterface interface {
-	marshalFunction(interface{}) ([]byte, error)
-	unmarshalFunction([]byte, interface{}) error
+	marshalFunction(interface{}) (string, error)
+	unmarshalFunction(string, interface{}) error
 }
 
-var defaultMarshal = MarshalJson{}
+var defaultMarshal = &MarshalJson{}
 
 type ToolOption interface {
 	Apply(r *RedisToolBase)
@@ -47,11 +47,11 @@ func (m *MarshalJson) Apply(r *RedisToolBase) {
 	r.MarshalInterface = m
 }
 
-func (m *MarshalJson) marshalFunction(i interface{}) ([]byte, error) {
-	res, err := jsoniter.Marshal(i)
+func (m *MarshalJson) marshalFunction(i interface{}) (string, error) {
+	res, err := jsoniter.MarshalToString(i)
 	return res, err
 }
 
-func (m *MarshalJson) unmarshalFunction(bytes []byte, iPtr interface{}) error {
-	return jsoniter.Unmarshal(bytes, iPtr)
+func (m *MarshalJson) unmarshalFunction(s string, iPtr interface{}) error {
+	return jsoniter.UnmarshalFromString(s, iPtr)
 }
