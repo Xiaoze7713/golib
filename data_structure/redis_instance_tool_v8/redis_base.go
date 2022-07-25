@@ -6,7 +6,7 @@ import (
 )
 
 type RedisToolBase struct {
-	client  *redis.Cmdable
+	client  redis.Cmdable
 	config  *message_queue.MQConfig
 	selfKey string
 	sep     string
