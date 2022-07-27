@@ -43,6 +43,8 @@ func FormatMsg(level logrus.Level, format string, depth int, isLn bool, args ...
 	fileSplit := strings.SplitN(file, env.AppName(), 2)
 	if len(fileSplit) >= 2 {
 		file = env.AppName() + fileSplit[1]
+	} else {
+		file = env.AppName() + "/weblog.go"
 	}
 	var text string
 	if isLn {
