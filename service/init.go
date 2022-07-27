@@ -8,6 +8,7 @@
 package service
 
 import (
+	"git.singularity-ai.com/backend/library/arch/web"
 	"git.singularity-ai.com/backend/library/log"
 	"git.singularity-ai.com/backend/library/service/token"
 	"git.singularity-ai.com/backend/library/xContext"
@@ -18,7 +19,12 @@ import (
 func Init(configPath string) {
 	token.InitToken("")
 	jaeger_trace.Init("")
-	xContext.Init(log.GetLogger(), jaeger_trace.GetTracer(), nil,
+	logger := log.GetLogger()
+	weblogger := web.WebLogger{
+		logger,
+		2,
+	}
+	xContext.Init(&weblogger, jaeger_trace.GetTracer(), nil,
 		jaeger_trace.TraceIDFunc,
 		jaeger_trace.SpanIDFunc,
 		jaeger_trace.DurFunc,

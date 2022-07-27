@@ -26,21 +26,36 @@ type LogWriter struct {
 	l *logrus.Logger
 }
 
+const Base_Skip_Times = 3
+
 // 日志自定义格式
 type LogFormatter struct{}
 
 // 格式详情
 func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	return []byte(entry.Message), nil
+}
+
+func FormatMsg(level logrus.Level, format string, depth int, isLn bool, args ...interface{}) string {
 	timestamp := time.Now().Local().Format("2006-01-02 15:04:05")
-	_, file, len, err := runtime.Caller(8) // 固定层数为7
-	if err != true {
-		file = filepath.Base(entry.Caller.File)
-		len = entry.Caller.Line
-	} else {
-		file = env.AppName() + strings.Replace(file, env.RootPath(), "", 1)
+	skip := Base_Skip_Times + depth
+	_, file, line, _ := runtime.Caller(skip)
+	fileSplit := strings.SplitN(file, env.AppName(), 2)
+	if len(fileSplit) >= 2 {
+		file = env.AppName() + fileSplit[1]
 	}
-	msg := fmt.Sprintf("%s: %s %s:%d %s\n", strings.ToUpper(entry.Level.String()), timestamp, file, len, entry.Message)
-	return []byte(msg), nil
+	var text string
+	if isLn {
+		text = sprintln(args...)
+	} else {
+		if format == "" {
+			text = fmt.Sprint(args...)
+		} else {
+			text = fmt.Sprintf(format, args...)
+		}
+	}
+	msg := fmt.Sprintf("%s: %s %s:%d %s\n", strings.ToUpper(level.String()), timestamp, file, line, text)
+	return msg
 }
 
 func NewWriter(config LogConfig, suffix string) *LogWriter {
@@ -92,7 +107,7 @@ func NewStdWriter(config LogConfig) *LogWriter {
 	loggerWrite.SetLevel(level)
 	// 设置日志格式
 	loggerWrite.SetReportCaller(true)
-	loggerWrite.SetFormatter(new(LogFormatter))
+	// loggerWrite.SetFormatter(new(LogFormatter))
 
 	return &LogWriter{loggerWrite}
 }

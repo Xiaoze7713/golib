@@ -9,7 +9,54 @@ package web
 
 import (
 	"fmt"
+
+	"git.singularity-ai.com/backend/library/log"
 )
+
+type WebLogger struct {
+	Logger log.Logger
+	Depth  int
+}
+
+func (l *WebLogger) Debugf(format string, args ...interface{}) {
+	l.Logger.Debugf(format, l.Depth, args...)
+}
+
+func (l *WebLogger) Infof(format string, args ...interface{}) {
+	l.Logger.Infof(format, l.Depth, args...)
+}
+
+func (l *WebLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warnf(format, l.Depth, args...)
+}
+
+func (l *WebLogger) Errorf(format string, args ...interface{}) {
+	l.Logger.Errorf(format, l.Depth, args...)
+}
+
+func (l *WebLogger) Fatalf(format string, args ...interface{}) {
+	l.Logger.Fatalf(format, l.Depth, args...)
+}
+
+func (l *WebLogger) Debug(args ...interface{}) {
+	l.Logger.Debug(l.Depth, args...)
+}
+
+func (l *WebLogger) Info(args ...interface{}) {
+	l.Logger.Info(l.Depth, args...)
+}
+
+func (l *WebLogger) Warn(args ...interface{}) {
+	l.Logger.Warn(l.Depth, args...)
+}
+
+func (l *WebLogger) Error(args ...interface{}) {
+	l.Logger.Error(l.Depth, args...)
+}
+
+func (l *WebLogger) Fatal(args ...interface{}) {
+	l.Logger.Fatal(l.Depth, args...)
+}
 
 func (ctx *WebContext) ContextPrefix() string {
 	return fmt.Sprintf("trace_id[%v] span_id[%v] ", ctx.TraceID().String(), ctx.SpanID().String())
