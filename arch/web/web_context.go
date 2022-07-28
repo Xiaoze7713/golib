@@ -66,7 +66,7 @@ func getTraceIDFromRequest(c *gin.Context) (traceID string) {
 	if traceID = strings.TrimSpace(request.Header.Get("X_TRACE_ID")); traceID != "" {
 		return
 	}
-	if traceID = strings.TrimSpace(request.Header.Get("trace_id")); traceID != "" {
+	if traceID = strings.TrimSpace(request.Header.Get("Trace_id")); traceID != "" {
 		return
 	}
 	// 上下游querystring透传时
