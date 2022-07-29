@@ -58,7 +58,7 @@ func InitToken(filePath string) {
 
 func VerifyToken(ctx *web.WebContext, token string) (TokenData, error) {
 
-	u := "https://" + tokenConfig.Host + "/token/verify"
+	u := "http://" + tokenConfig.Host + "/token/verify"
 
 	body := struct {
 		Data struct {
