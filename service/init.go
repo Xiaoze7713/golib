@@ -8,6 +8,7 @@
 package service
 
 import (
+	"git.singularity-ai.com/backend/library/apollo"
 	"git.singularity-ai.com/backend/library/arch/web"
 	"git.singularity-ai.com/backend/library/log"
 	"git.singularity-ai.com/backend/library/service/token"
@@ -19,6 +20,7 @@ import (
 func Init(configPath string) {
 	token.InitToken("")
 	jaeger_trace.Init("")
+	apollo.Init("")
 	logger := log.GetLogger()
 	weblogger := web.WebLogger{
 		logger,
