@@ -508,7 +508,7 @@ func (x *XContext) Fatalf(format string, args ...interface{}) {
 
 func (x *XContext) Fin() {
 	x.Span.FinishWithOptions(opentracing.FinishOptions{
-		FinishTime: time.Time{},
+		FinishTime: time.Now(),
 		//LogRecords:  nil,
 		//BulkLogData: nil,
 	})
