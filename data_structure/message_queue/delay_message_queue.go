@@ -86,7 +86,7 @@ func (m *DMQManager) LoopConsumer() {
 				return
 			}
 			if len(msgList) <= 0 {
-				time.Sleep(time.Second)
+				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 			for _, msgIF := range msgList {
