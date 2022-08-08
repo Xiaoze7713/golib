@@ -104,6 +104,9 @@ func WebLogger() web.WebHandlerFunc {
 		} else {
 			c.Info(msg)
 		}
+		c.SetTag("idc", env.IDC())
+		c.SetTag("header", header)
+		c.SetTag("req", string(body))
 		c.Fin()
 	}
 }
