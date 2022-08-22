@@ -9,10 +9,10 @@ import (
 )
 
 // Wait 重要的wait事件， 任意一个done全局，close && collection
-func Wait(ctx context.Context, waitFunction []func() <-chan interface{}, signals []os.Signal, collectFunctions []func()) (cancel context.CancelFunc) {
+func Wait(ctx context.Context, waitFunction []func() <-chan struct{}, signals []os.Signal, collectFunctions []func()) (cancel context.CancelFunc) {
 	newCtx, cancel := signal.NotifyContext(ctx, signals...)
 	for _, wf := range waitFunction {
-		go func(wf func() <-chan interface{}) {
+		go func(wf func() <-chan struct{}) {
 			for {
 				select {
 				case <-wf():
