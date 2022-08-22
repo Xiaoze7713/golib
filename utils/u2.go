@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"reflect"
 	"regexp"
@@ -146,5 +147,13 @@ func FuncName(v interface{}) (s string) {
 	s1 := l1[len(l1)-1]
 	l2 := strings.Split(s1, "-fm")
 	s = l2[0]
+	return s
+}
+
+func MustJson(v interface{}) (s string) {
+	s, err := jsoniter.MarshalToString(v)
+	if err != nil {
+		return reflect.TypeOf(v).Kind().String() + err.Error()
+	}
 	return s
 }
