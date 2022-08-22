@@ -19,7 +19,6 @@ require (
 	github.com/sirupsen/logrus v1.5.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
-	github.com/xutils/lib-common v0.0.0
 	github.com/zouyx/agollo/v4 v4.0.8
 	google.golang.org/grpc v1.45.0
 	gorm.io/driver/mysql v1.3.3
@@ -79,5 +78,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99 // indirect
 )
-
-replace github.com/xutils/lib-common v0.0.0 => github.com/471641513/lib-common v1.0.3

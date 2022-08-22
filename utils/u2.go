@@ -6,9 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
-	"github.com/xutils/lib-common/local_context"
-	"google.golang.org/grpc/metadata"
 	"io/ioutil"
 	"reflect"
 	"regexp"
@@ -21,26 +18,6 @@ import (
 var (
 	tokenKey = "token"
 )
-
-func GetKeyStringValueFromCtx(ctx *local_context.LocalContext, key string) (value string, ok bool) {
-	md, ok := metadata.FromIncomingContext(ctx.Context)
-	if !ok {
-		return
-	}
-	tokens, ok := md[key]
-	if !ok {
-		return
-	}
-	if tokens == nil {
-		return "", false
-	}
-	if len(tokens) > 0 {
-		value = strings.Join(tokens, "")
-	}
-	ok = value != ""
-	xlog.Debugf("get token from ctx , %s = %s", key, value)
-	return
-}
 
 func UTimeMs() int64 {
 	return time.Now().UnixMilli()
