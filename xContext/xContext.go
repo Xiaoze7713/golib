@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.singularity-ai.com/backend/library/utils"
 	xlog_base2 "git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xspan_base"
@@ -17,7 +18,6 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/xutils/lib-common/utils"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
@@ -616,12 +616,12 @@ func DoRequest() gin.HandlerFunc {
 		resp, ok := gc.Get("resp")
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
-			ctx.SetKV(RespBody, utils.MustString(resp))
+			ctx.SetKV(RespBody, utils.MustJson(resp))
 			gc.JSON(http.StatusOK, resp)
 		} else {
 			resp = map[string]interface{}{"code": -1, "code_msg": ""}
 			gc.JSON(http.StatusOK, resp)
-			ctx.SetKV(RespBody, utils.MustString(resp))
+			ctx.SetKV(RespBody, utils.MustJson(resp))
 		}
 	}
 }
