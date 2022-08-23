@@ -76,7 +76,7 @@ type Trace struct {
 type NullIDType int64
 
 func (m NullIDType) String() string {
-	return fmt.Sprintf("%x", m)
+	return fmt.Sprintf("%x", m.Value())
 }
 
 func (m NullIDType) Value() int64 {
