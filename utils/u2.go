@@ -54,6 +54,22 @@ func MaxInt32(ns ...int32) (m int32) {
 	return m
 }
 
+func BytesMd5(bytes []byte) (md5String string, err error) {
+	m := md5.New()
+	m.Write(bytes)
+	md5String = hex.EncodeToString(m.Sum(nil))
+	return
+}
+
+func StringsMd5(strList []string) (md5String string, err error) {
+	m := md5.New()
+	for _, s := range strList {
+		m.Write([]byte(s))
+	}
+	md5String = hex.EncodeToString(m.Sum(nil))
+	return
+}
+
 func MinInt32(ns ...int32) (m int32) {
 	m = ns[0]
 
