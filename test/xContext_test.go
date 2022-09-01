@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"testing"
@@ -22,9 +23,11 @@ import (
 const name = iota
 
 func RunFunc(ctx *xContext.XContext) {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		time.Sleep(time.Second)
 		ctx.Info(ctx.OperationName(), i)
+		xlog.Info(ctx.OperationName(), i)
+		ctx.Info(runtime.Caller(1))
 		ctx.SetTag("val", fmt.Sprintf("%v", i))
 		ctx.LogFields("hi", "i`am xiaoai")
 	}

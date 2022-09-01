@@ -60,6 +60,7 @@ type Logger struct {
 	lastTimeStr string
 	c           chan bool
 	layout      string
+	skipStr     string
 }
 
 func NewLogger() *Logger {
@@ -74,6 +75,7 @@ func NewLogger() *Logger {
 	l.c = make(chan bool, 1)
 	l.level = DEBUG
 	l.layout = "2006-01-02T15:04:05"
+	l.skipStr = "xContextLog.go"
 
 	go boostrapLogWriter(l)
 
@@ -160,8 +162,16 @@ func (l *Logger) Close() {
 	}
 }
 
+func (l *Logger) CodeLine(skip int) string {
+	_, file, line, ok := runtime.Caller(skip)
+	if ok {
+		return path.Base(file) + ":" + strconv.Itoa(line)
+	}
+	return ""
+}
+
 func (l *Logger) deliverRecordToWriter(level int, format string, args ...interface{}) {
-	var inf, code string
+	var inf string
 
 	if level < l.level {
 		return
@@ -174,21 +184,21 @@ func (l *Logger) deliverRecordToWriter(level int, format string, args ...interfa
 	}
 
 	// source code, file and line num
-	_, file, line, ok := runtime.Caller(3)
-	if ok {
-		code = path.Base(file) + ":" + strconv.Itoa(line)
-	}
-
 	// format time
 	now := time.Now()
 	if now.Unix() != l.lastTime {
 		l.lastTime = now.Unix()
 		l.lastTimeStr = now.Format(l.layout)
 	}
-
 	r := recordPool.Get().(*Record)
 	r.info = inf
-	r.code = code
+	r.code = l.CodeLine(3)
+	if len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
+		r.code = l.CodeLine(4)
+	}
+	//for i := 0; i < 6; i++ {
+	//	fmt.Println(l.CodeLine(i))
+	//}
 	r.time = l.lastTimeStr
 	r.level = level
 
