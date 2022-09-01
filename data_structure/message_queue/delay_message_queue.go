@@ -32,8 +32,8 @@ type DMQManager struct {
 	producerCtx     context.Context
 	producerCancel  context.CancelFunc
 	ctx             context.Context
-	msgIn           chan interface{}
-	msgOut          chan *DqMsg
+	//msgIn           chan interface{}
+	msgOut chan *DqMsg
 }
 
 func NewDMQManager(instance DMQInstance, handler MQMsgHandlerFunc) (mqMgr *DMQManager, err error) {
@@ -46,8 +46,8 @@ func NewDMQManager(instance DMQInstance, handler MQMsgHandlerFunc) (mqMgr *DMQMa
 		//deserializationFunc: deserializationFunc,
 		handlerFunction: handler,
 		ctx:             context.Background(),
-		msgIn:           make(chan interface{}, 10),
-		msgOut:          make(chan *DqMsg, 10),
+		//msgIn:           make(chan interface{}, 10),
+		msgOut: make(chan *DqMsg, 10),
 	}
 	mqMgr.consumerCtx, mqMgr.consumerCancel = context.WithCancel(mqMgr.ctx)
 	mqMgr.producerCtx, mqMgr.producerCancel = context.WithCancel(mqMgr.ctx)
@@ -64,16 +64,7 @@ func (m *DMQManager) LoopConsumer() {
 	xlog.Infof("start run mq consumer %v", m.instance.Name())
 	for {
 		select {
-		case msg := <-m.msgIn:
-			go func(newMsg interface{}) {
-				// 开始span
-				defer func() {
-					if r := recover(); r != any(nil) {
-						xlog.Errorf("panic msg=%v,  recover=%v %v", stack.Trace())
-					}
-				}()
-				m.handlerFunction(newMsg)
-			}(msg)
+		//case msg := <-m.msgIn:
 		case <-m.consumerCtx.Done():
 			xlog.Debugf("consumer close")
 			return
@@ -91,7 +82,16 @@ func (m *DMQManager) LoopConsumer() {
 			}
 			for _, msgIF := range msgList {
 				msg := msgIF
-				m.msgIn <- msg
+				go func(newMsg interface{}) {
+					// 开始span
+					defer func() {
+						if r := recover(); r != any(nil) {
+							xlog.Errorf("panic msg=%v,  recover=%v %v", stack.Trace())
+						}
+					}()
+					m.handlerFunction(newMsg)
+				}(msg)
+				//m.msgIn <- msg
 			}
 		}
 	}
