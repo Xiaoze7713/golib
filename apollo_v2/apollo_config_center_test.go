@@ -2,7 +2,7 @@ package apollo_v2
 
 import (
 	"fmt"
-	"github.com/xutils/lib-common/utils"
+	"git.singularity-ai.com/backend/library/utils"
 	"testing"
 )
 
@@ -22,7 +22,7 @@ func Test_apollo_run(t *testing.T) {
 	_ = xx.GetConfigAndInit(ns)
 	//cache := xx.GetApolloConfigCache()
 	res := xx.GetConfig(ns)
-	fmt.Println(utils.MustString(res))
+	fmt.Println(utils.MustJson(res))
 	//data, _ := conf.Get("content")
 	//if err != nil {
 	//	fmt.Println(err)

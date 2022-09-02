@@ -8,7 +8,6 @@ import (
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
-	utils2 "github.com/xutils/lib-common/utils"
 	"strconv"
 	"time"
 )
@@ -128,7 +127,7 @@ func (m *RedisDelayQueue) PopL(ctx context.Context, timeMsStart, timeMsEnd int64
 	xlog.Debugf("res_list=%v", len(resList))
 	_, err = m.client.ZRem(ctx, m.QueueName(), invalidKeys...).Result()
 	if err != nil {
-		xlog.Errorf("k=%v", utils2.MustString(invalidKeys))
+		xlog.Error(invalidKeys...)
 		return nil, err
 	}
 	return resList, nil
