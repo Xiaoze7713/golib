@@ -7,7 +7,6 @@ import (
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/xutils/lib-common/utils"
 )
 
 type RedisQueue struct {
@@ -80,7 +79,6 @@ func (m *RedisQueue) pop(ctx context.Context, block bool) (res string, err error
 		res, err = m.client.LPop(ctx, m.QueueName()).Result()
 		resList = append(resList, m.QueueName(), res)
 	}
-	xlog.Debug(utils.MustString(resList))
 	if err != nil {
 		return "", err
 	}
