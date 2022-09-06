@@ -268,9 +268,13 @@ func mappingReflect(inIfc reflect.Type, tags map[string]string, deep int) (out i
 			}
 			fieldTags := parseTag(tagStr)
 			name := field.Name
-			if tName, ok := fieldTags["name"]; ok {
-				name = tName
+			tagJsonStr := field.Tag.Get("json")
+			if jName, _, _ := strings.Cut(tagJsonStr, ","); jName != "" {
+				name = jName
 			}
+			//if tName, ok := fieldTags["name"]; ok {
+			//	name = tName
+			//}
 			//fmt.Println("struct", name, field.Type.Kind())
 			switch field.Type.Kind() {
 			case reflect.Ptr, reflect.Array, reflect.Slice:
