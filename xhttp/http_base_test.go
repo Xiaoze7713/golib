@@ -1,8 +1,6 @@
-package http_base
+package xhttp
 
 import "testing"
-
-
 
 func TestName(t *testing.T) {
 

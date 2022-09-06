@@ -1,4 +1,4 @@
-package http_base
+package xhttp
 
 import (
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
