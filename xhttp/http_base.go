@@ -11,7 +11,7 @@ type request struct {
 }
 
 func GinMustBind(gc *gin.Context, binding binding.Binding, data interface{}) (err error) {
-	req := request{data}
+	req := &request{data}
 	err = gc.MustBindWith(req, binding)
 	return
 }
