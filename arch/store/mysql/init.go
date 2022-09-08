@@ -9,12 +9,14 @@ package mysql
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/log"
+	"io/ioutil"
+	"os"
+
 	"github.com/BurntSushi/toml"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"io/ioutil"
-	"os"
+
+	"git.singularity-ai.com/backend/library/log"
 )
 
 type ConfigItem struct {
@@ -41,7 +43,7 @@ func Init(filePath string) error {
 		filePath = defaultMysqlConfigPath
 	}
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Println("redis.toml not exist")
+		log.Println("mysql.toml not exist")
 		return nil
 	}
 

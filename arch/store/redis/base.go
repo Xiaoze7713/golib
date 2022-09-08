@@ -56,3 +56,14 @@ func sampleDoString(ctx *web.WebContext, method string, args ...interface{}) (re
 	}
 	return
 }
+
+func sampleDoStringMap(ctx *web.WebContext, method string, args ...interface{}) (reply map[string]string, err error) {
+	reply, err = rds.StringMap(sampleDo(ctx, method, args...))
+	if err == rds.ErrNil {
+		return nil, nil
+	}
+	if err != nil {
+		ctx.Fatalf("redis err=%v", err)
+	}
+	return
+}

@@ -8,6 +8,8 @@
 package redis
 
 import (
+	"strconv"
+
 	rds "github.com/gomodule/redigo/redis"
 
 	"git.singularity-ai.com/backend/library/arch/web"
@@ -92,12 +94,32 @@ func HSet(ctx *web.WebContext, key, field, value string) error {
 	return err
 }
 
+func HMSet(ctx *web.WebContext, key string, data map[string]interface{}) error {
+	var params []interface{}
+	params = append(params, key)
+	for k, v := range data {
+		params = append(params, k, v)
+	}
+	var err error
+	_, err = sampleDo(ctx, "HMSET", params...)
+	return err
+}
+
 func HGet(ctx *web.WebContext, key, field string) (string, error) {
 	return sampleDoString(ctx, "HGET", key, field)
 }
 
-func HDel(ctx *web.WebContext, key string, field string) (string, error) {
-	return sampleDoString(ctx, "HDEL", key, field)
+func HGetAll(ctx *web.WebContext, key string) (map[string]string, error) {
+	return sampleDoStringMap(ctx, "HGETALL", key)
+}
+
+func HDel(ctx *web.WebContext, key string, field []string) (string, error) {
+	var params []interface{}
+	params = append(params, key)
+	for _, v := range field {
+		params = append(params, v)
+	}
+	return sampleDoString(ctx, "HDEL", key, params)
 }
 
 func SAdd(ctx *web.WebContext, key string, data []string) error {
@@ -126,4 +148,105 @@ func SRem(ctx *web.WebContext, key string, data []string) error {
 	}
 	_, err := sampleDo(ctx, "SREM", params...)
 	return err
+}
+
+type ZRangeWithScoreDate struct {
+	Member string
+	Score  int64
+}
+
+func ZAdd(ctx *web.WebContext, key string, data []ZRangeWithScoreDate) (int64, error) {
+	var params []interface{}
+	params = append(params, key)
+	for _, value := range data {
+		params = append(params, value.Score, value.Member)
+	}
+	return sampleDoInt64(ctx, "ZADD", params...)
+}
+
+func ZCard(ctx *web.WebContext, key string) (int64, error) {
+	return sampleDoInt64(ctx, "ZCARD", key)
+}
+
+func ZCount(ctx *web.WebContext, key string, min, max int64) (int64, error) {
+	return sampleDoInt64(ctx, "ZCOUNT", key, min, max)
+}
+
+func ZRange(ctx *web.WebContext, key string, start, stop int64) ([]string, error) {
+	values, err := rds.ByteSlices(sampleDo(ctx, "ZRANGE", key, start, stop))
+	var valueString []string
+	if err != nil {
+		return valueString, err
+	}
+	for _, v := range values {
+		valueString = append(valueString, string(v))
+	}
+	return valueString, nil
+}
+
+func ZRangeWithScore(ctx *web.WebContext, key string, start, stop int64) ([]ZRangeWithScoreDate, error) {
+	values, err := rds.ByteSlices(sampleDo(ctx, "ZRANGE", key, start, stop, "WITHSCORES"))
+	var valueStruct []ZRangeWithScoreDate
+	if err != nil {
+		return valueStruct, err
+	}
+	for i := 0; i < len(values); i += 2 {
+		int64Num, _ := strconv.ParseInt(string(values[i+1]), 10, 64)
+		row := ZRangeWithScoreDate{
+			Member: string(values[i]),
+			Score:  int64Num,
+		}
+		valueStruct = append(valueStruct, row)
+	}
+	return valueStruct, nil
+}
+
+func ZRank(ctx *web.WebContext, key string, member string) (int64, error) {
+	return sampleDoInt64(ctx, "ZRANK", key, member)
+}
+
+func ZRevrange(ctx *web.WebContext, key string, start, stop int64) ([]string, error) {
+	values, err := rds.ByteSlices(sampleDo(ctx, "ZREVRANGE", key, start, stop))
+	var valueString []string
+	if err != nil {
+		return valueString, err
+	}
+	for _, v := range values {
+		valueString = append(valueString, string(v))
+	}
+	return valueString, nil
+}
+
+func ZRevrangeWithScore(ctx *web.WebContext, key string, start, stop int64) ([]ZRangeWithScoreDate, error) {
+	values, err := rds.ByteSlices(sampleDo(ctx, "ZREVRANGE", key, start, stop, "WITHSCORES"))
+	var valueStruct []ZRangeWithScoreDate
+	if err != nil {
+		return valueStruct, err
+	}
+	for i := 0; i < len(values); i += 2 {
+		int64Num, _ := strconv.ParseInt(string(values[i+1]), 10, 64)
+		row := ZRangeWithScoreDate{
+			Member: string(values[i]),
+			Score:  int64Num,
+		}
+		valueStruct = append(valueStruct, row)
+	}
+	return valueStruct, nil
+}
+
+func ZRevrank(ctx *web.WebContext, key string, member string) (int64, error) {
+	return sampleDoInt64(ctx, "ZREVRANK", key, member)
+}
+
+func ZRem(ctx *web.WebContext, key string, member []string) (int64, error) {
+	var params []interface{}
+	params = append(params, key)
+	for _, value := range member {
+		params = append(params, value)
+	}
+	return sampleDoInt64(ctx, "ZREM", params...)
+}
+
+func ZScore(ctx *web.WebContext, key string, member string) (int64, error) {
+	return sampleDoInt64(ctx, "ZSCORE", key, member)
 }

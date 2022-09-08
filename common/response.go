@@ -32,7 +32,7 @@ func Failed(ctx *web.WebContext, errno int, errmsg string, data interface{}) {
 
 // Common 通用格式化错误返回
 func Common(ctx *web.WebContext, httpCode int, errno int, errmsg string, data interface{}) {
-	traceId := ctx.GetString("traceID")
+	traceId := ctx.SpanID().String()
 	resp := Resp{
 		traceId,
 		errno,

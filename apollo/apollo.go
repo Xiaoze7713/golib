@@ -38,7 +38,7 @@ func Init(filePath string) {
 		filePath = defaultTokenConfigPath
 	}
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Infoln("token.toml not exist")
+		log.Infoln("apollo.toml not exist")
 		return
 	}
 	var c Config

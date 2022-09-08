@@ -31,9 +31,13 @@ const (
 
 	SystemAppTrans = 3000 // app透传
 
-	SystemAppFeatures = 4000 // app功能api
-	TypeSendImMessage = 4002
-	TypeMarkMessage   = 4003
+	SystemAppFeatures     = 4000 // app功能api
+	TypeSendSoundMessage  = 4001 // 用户发送音视频消息
+	TypeSendImMessage     = 4002 // 用户发送IM消息
+	TypeMarkMessage       = 4003 // 用户标记消息(点赞、点踩等)
+	TypeReplySoundMessage = 4101 // 策略回复音视频消息
+	TypeReplyImMessage    = 4102 // 策略回复IM消息
+	TypeUpdateFeature     = 4300 // 更新特效
 )
 
 const EventKafkaTopic = "event"
