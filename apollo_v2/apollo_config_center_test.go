@@ -1,28 +1,40 @@
 package apollo_v2
 
 import (
-	"fmt"
 	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"testing"
+	"time"
 )
 
 func Test_apollo_run(t *testing.T) {
+	xlog.SetupLogDefault()
+	defer func() {
+		time.Sleep(time.Second * 5)
+	}()
 	simpleConfig := &SimpleConfig{
 		Cluster: "default",
 		Host:    "https://config-center-apollo.singularity-ai.com",
 		AppID:   "expression_v1",
 	}
-	xx, err := NewApolloClient(simpleConfig.Host, simpleConfig.Cluster, simpleConfig.AppID)
+	nsList := []string{"expression_config.json"}
+	//nsList := []string{}
+	err := Init(simpleConfig.Host, simpleConfig.Cluster, simpleConfig.AppID, nsList)
 	if err != nil {
-		fmt.Println(err)
+		xlog.Error(err)
 		return
 	}
+	xlog.Info("init finish")
 	ns := "expression_config.json"
 	//mm := map[string]interface{}{}
-	_ = xx.GetConfigAndInit(ns)
+	//_ = xx.GetConfig(ns)
 	//cache := xx.GetApolloConfigCache()
-	res := xx.GetConfig(ns)
-	fmt.Println(utils.MustJson(res))
+	mm := map[string]interface{}{}
+	err = Handler.GetJsonData(ns, &mm)
+	if err != nil {
+		xlog.Error(err)
+	}
+	xlog.Info(utils.MustJson(mm))
 	//data, _ := conf.Get("content")
 	//if err != nil {
 	//	fmt.Println(err)
