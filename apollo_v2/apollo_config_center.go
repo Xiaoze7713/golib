@@ -63,23 +63,28 @@ func (m *ApolloHandler) Register(nsList []string) (err error) {
 
 func Init(host, cluster, appID string, ns []string) (err error) {
 	once.Do(func() {
-		conf = &config.AppConfig{
-			AppID:            appID,
-			Cluster:          cluster,
-			IP:               host,
-			IsBackupConfig:   true,
-			MustStart:        true,
-			BackupConfigPath: "conf/apollo/",
-		}
-		Handler = &ApolloHandler{
-			nsMap: &sync.Map{},
-			conf:  nil,
-		}
-		Handler.conf = conf
-		if len(ns) > 0 {
-			err = Handler.Register(ns)
-		}
+		Handler, err = NewInstance(host, cluster, appID, ns)
 	})
+	return
+}
+
+func NewInstance(host, cluster, appID string, ns []string) (hdl *ApolloHandler, err error) {
+	conf = &config.AppConfig{
+		AppID:            appID,
+		Cluster:          cluster,
+		IP:               host,
+		IsBackupConfig:   true,
+		MustStart:        true,
+		BackupConfigPath: "conf/apollo/",
+	}
+	hdl = &ApolloHandler{
+		nsMap: &sync.Map{},
+		conf:  nil,
+	}
+	hdl.conf = conf
+	if len(ns) > 0 {
+		err = hdl.Register(ns)
+	}
 	return
 }
 
