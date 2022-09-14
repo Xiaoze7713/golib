@@ -12,7 +12,7 @@ type request struct {
 
 func GinMustBind(gc *gin.Context, binding binding.Binding, data interface{}) (err error) {
 	req := &request{data}
-	err = gc.MustBindWith(req, binding)
+	err = gc.ShouldBindWith(req, binding)
 	return
 }
 
