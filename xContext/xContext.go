@@ -5,25 +5,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/go-stack/stack"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
-	"github.com/prometheus/client_golang/prometheus"
-
-	xlog_base2 "git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
+	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/xContext/base_if/xlog_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xspan_base"
 	"git.singularity-ai.com/backend/library/xContext/base_if/xtrace_base"
 	"git.singularity-ai.com/backend/library/xContext/loggers/null_log"
 	"git.singularity-ai.com/backend/library/xContext/metrics/null_metric"
+	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -57,7 +56,7 @@ const (
 // 监控 链路跟踪 log
 var mMetric xmetric_base.MetricsIF
 var mTrace xtrace_base.TracerIF
-var mLogger xlog_base2.LoggerIF
+var mLogger xlog_base.LoggerIF
 
 type GetIDType func(xContext *XContext) IDType
 type GetDurType func(xContext *XContext) time.Duration
@@ -77,7 +76,7 @@ type Trace struct {
 type NullIDType int64
 
 func (m NullIDType) String() string {
-	return fmt.Sprintf("%x", m)
+	return fmt.Sprintf("%x", m.Value())
 }
 
 func (m NullIDType) Value() int64 {
@@ -138,7 +137,7 @@ func emptyDurFunc(x *XContext) time.Duration {
 // }
 //
 
-func Init(logger xlog_base2.LoggerIF,
+func Init(logger xlog_base.LoggerIF,
 	trace xtrace_base.TracerIF,
 	metrics xmetric_base.MetricsIF,
 	traceF, spanF GetIDType, durF GetDurType, extractF ExtractSpanFunc, serializeF SerializeToString) {
@@ -194,7 +193,7 @@ func (x *XContext) ToAnyArgs(keys ...ContextKey) []interface{} {
 
 type XContext struct {
 	context.Context
-	xlog_base2.LoggerIF
+	xlog_base.LoggerIF
 	xmetric_base.MetricsIF
 	Span          xspan_base.SpanIF
 	CancelList    []context.CancelFunc
@@ -420,8 +419,6 @@ func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
 	fields, err := log.InterleavedKVToFields(kvs...)
 	if err == nil {
 		x.Span.LogFields(fields...)
-	} else {
-		x.LoggerIF.Error(err)
 	}
 }
 
@@ -444,74 +441,13 @@ func (x *XContext) KVsFormats(kvs KVMType) string {
 	}
 	return strings.Join(outs, "||")
 }
-
-func (x *XContext) Info(args ...interface{}) {
-	x.LoggerIF.Info(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) InfoKV(kvm KVMType) {
-	x.LogFields(kvm.ToAnyArgs()...)
-	x.LoggerIF.Info(append([]interface{}{x.XContextPrefix()}, x.KVsFormats(kvm))...)
-}
-
-func (x *XContext) Debug(args ...interface{}) {
-	x.LoggerIF.Debug(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) DebugKV(kvm KVMType) {
-	x.LogFields(kvm.ToAnyArgs()...)
-	x.LoggerIF.Debug(append([]interface{}{x.XContextPrefix()}, x.KVsFormats(kvm))...)
-}
-
-func (x *XContext) Warn(args ...interface{}) {
-	x.LoggerIF.Warn(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) Error(args ...interface{}) {
-	x.LoggerIF.Error(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) ErrorE(e error) {
-	x.SetTag(string(ExecStatus), "error")
-	x.LogFields(string(Error), e.Error())
-	x.MetricsIF.CounterBy("err", x.TagNames2PLabels(Error)).Add(1)
-	x.LoggerIF.Error(append([]interface{}{x.XContextPrefix()}, e.Error(), stack.Caller(7))...)
-}
-
-func (x *XContext) Fatal(args ...interface{}) {
-	x.LoggerIF.Fatal(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) Infof(format string, args ...interface{}) {
-	format = x.XContextPrefix() + format
-	x.LoggerIF.Infof(format, args...)
-}
-
-func (x *XContext) Debugf(format string, args ...interface{}) {
-	format = x.XContextPrefix() + format
-	x.LoggerIF.Debugf(format, args...)
-}
-
-func (x *XContext) Warnf(format string, args ...interface{}) {
-	format = x.XContextPrefix() + format
-	x.LoggerIF.Warnf(format, args...)
-}
-
-func (x *XContext) Errorf(format string, args ...interface{}) {
-	format = x.XContextPrefix() + format
-	x.LoggerIF.Errorf(format, args...)
-}
-
-func (x *XContext) Fatalf(format string, args ...interface{}) {
-	format = x.XContextPrefix() + format
-	x.LoggerIF.Fatalf(format, args...)
-}
-
 func (x *XContext) Fin() {
 	x.Span.FinishWithOptions(opentracing.FinishOptions{
 		FinishTime: time.Time{},
 		// LogRecords:  nil,
 		// BulkLogData: nil,
+		//LogRecords:  nil,
+		//BulkLogData: nil,
 	})
 	for _, cancel := range x.CancelList {
 		cancel()
@@ -579,8 +515,8 @@ func DoRequest() gin.HandlerFunc {
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
-			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
-			// ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
@@ -617,9 +553,12 @@ func DoRequest() gin.HandlerFunc {
 		resp, ok := gc.Get("resp")
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
+			ctx.SetKV(RespBody, utils.MustJson(resp))
 			gc.JSON(http.StatusOK, resp)
 		} else {
-			gc.JSON(http.StatusOK, map[string]interface{}{"code": -1, "code_msg": ""})
+			resp = map[string]interface{}{"code": -1, "code_msg": ""}
+			gc.JSON(http.StatusOK, resp)
+			ctx.SetKV(RespBody, utils.MustJson(resp))
 		}
 	}
 }
