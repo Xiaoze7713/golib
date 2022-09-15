@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"testing"
@@ -22,9 +23,11 @@ import (
 const name = iota
 
 func RunFunc(ctx *xContext.XContext) {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		time.Sleep(time.Second)
 		ctx.Info(ctx.OperationName(), i)
+		xlog.Info(ctx.OperationName(), i)
+		ctx.Info(runtime.Caller(1))
 		ctx.SetTag("val", fmt.Sprintf("%v", i))
 		ctx.LogFields("hi", "i`am xiaoai")
 	}
@@ -147,12 +150,13 @@ func TestContext2(t *testing.T) {
 	g := GinServer()
 	g.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	gg := g.Group("api")
-	gg.GET("hello", func(c *gin.Context) {
+	gg.POST("hello", func(c *gin.Context) {
 		ctxI, ok := c.Get("xContext")
 		if !ok {
 			return
 		}
 		ctx := ctxI.(*xContext.XContext)
+		ctx.Info("pupupu", c.GetHeader("trace_id"))
 		ctx1 := xContext.NewChildXContext(ctx, "count1")
 		ctx2 := xContext.NewChildXContext(ctx, "count2")
 		ctx3 := xContext.NewChildXContext(ctx, "count3")
