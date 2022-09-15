@@ -250,3 +250,21 @@ func ZRem(ctx *web.WebContext, key string, member []string) (int64, error) {
 func ZScore(ctx *web.WebContext, key string, member string) (int64, error) {
 	return sampleDoInt64(ctx, "ZSCORE", key, member)
 }
+
+func LuaDo(ctx *web.WebContext, script *rds.Script, keys []string, argvs ...interface{}) (interface{}, error) {
+	conn := client.C.Get()
+	defer func(conn rds.Conn) {
+		err := conn.Close()
+		if err != nil {
+			ctx.Fatalf("close conn err=%v", err)
+		}
+	}(conn)
+	keysAndArgs := []interface{}{}
+	for _, v := range keys {
+		keysAndArgs = append(keysAndArgs, v)
+	}
+	for _, v := range argvs {
+		keysAndArgs = append(keysAndArgs, v)
+	}
+	return script.Do(conn, keysAndArgs...)
+}
