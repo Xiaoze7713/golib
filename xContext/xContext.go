@@ -137,6 +137,10 @@ func emptyDurFunc(x *XContext) time.Duration {
 // }
 //
 
+func InitByOpt() {
+
+}
+
 func Init(logger xlog_base.LoggerIF,
 	trace xtrace_base.TracerIF,
 	metrics xmetric_base.MetricsIF,

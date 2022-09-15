@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext"
 	"io/ioutil"
 	"net/http"
@@ -24,7 +25,8 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 	if err != nil {
 		return err
 	}
-	ctx.SetTag(string(xContext.ReqBody), string(bodyBytes))
+	//ctx.SetTag(string(xContext.ReqBody), string(bodyBytes))
+	ctx.Infof("req %v", utils.MustJson(req))
 	request.Header.Add("contentType", "application/json")
 	ctx.SetTag("do_request", ctx.SerializeSpanContext())
 	request.Header.Add("trace_id", ctx.SerializeSpanContext())
@@ -44,8 +46,8 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 		ctx.SetTag(string(xContext.Error), "read resp body err")
 		return errors.New("read resp body err")
 	}
-	ctx.SetTag(string(xContext.RespBody), string(respBody))
-	ctx.Debugf("resp=%v", string(respBody))
+	//ctx.SetTag(string(xContext.RespBody), string(respBody))
+	ctx.Infof("resp %v", string(respBody))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
 		return err
