@@ -16,8 +16,11 @@ type HttpBase struct {
 }
 
 func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}) (err error) {
+	ctx = xContext.NewChildXContext(ctx, ctx.OperationName()+"_do")
+	defer ctx.Fin()
 	ctx.LogFields("request", m.Url)
-	ctx.SetTag(string(xContext.ReqBody), utils.MustJson(req))
+	ctx.Debugf("req %v", utils.MustJson(req))
+	//ctx.SetTag(string(xContext.ReqBody), utils.MustJson(req))
 	ctx.SetTag("do_request", ctx.SerializeSpanContext())
 	ctx.SetTag("url", m.Url)
 	httpResp, err := m.Cli.R().
@@ -34,8 +37,8 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 		return errors.New(fmt.Sprintf("exception http code %v", httpResp.StatusCode()))
 	}
 	respBody := httpResp.Body()
-	ctx.SetTag(string(xContext.RespBody), string(respBody))
-	ctx.Debugf("resp=%v", string(respBody))
+	//ctx.SetTag(string(xContext.RespBody), string(respBody))
+	ctx.Debugf("resp %v", string(respBody))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
 		return err

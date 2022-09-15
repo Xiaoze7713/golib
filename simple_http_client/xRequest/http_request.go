@@ -16,6 +16,8 @@ type HttpBase struct {
 }
 
 func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}) (err error) {
+	ctx = xContext.NewChildXContext(ctx, ctx.OperationName()+"_do")
+	defer ctx.Fin()
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return err
