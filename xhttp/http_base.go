@@ -6,6 +6,12 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
+type Response struct {
+	Code     int64       `json:"code"`
+	CodeMsg  string      `json:"codeMsg"`
+	RespData interface{} `json:"resp_data"`
+}
+
 type request struct {
 	Data interface{} `json:"data"`
 }
