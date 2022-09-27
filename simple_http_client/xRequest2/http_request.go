@@ -26,7 +26,7 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 	ctx = xContext.NewChildXContext(ctx, method+"[REQ]")
 	defer ctx.Fin()
 	ctx.LogFields("request", m.Url)
-	ctx.Debugf("[%v] req %v", method, utils.MustJson(req))
+	ctx.Infof("[%v] req %v", method, utils.MustJson(req))
 	//ctx.SetTag(string(xContext.ReqBody), utils.MustJson(req))
 	ctx.SetTag("trace", ctx.SerializeSpanContext())
 	ctx.SetTag("url", m.Url)
@@ -47,7 +47,7 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 	respBody := httpResp.Body()
 	//ctx.SetTag(string(xContext.RespBody), string(respBody))
 	//ctx.Debugf("resp %v", string(respBody))
-	ctx.Debugf("[%v] resp %v", method, string(respBody))
+	ctx.Infof("[%v] resp %v", method, string(respBody))
 	ctx.LogFields("resp", string(respBody))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
