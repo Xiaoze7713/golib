@@ -173,3 +173,18 @@ func MustJson(v interface{}) (s string) {
 	}
 	return s
 }
+
+func JsonUnMarshalString(s string, objPtr interface{}) (err error) {
+	decoder := jsoniter.NewDecoder(strings.NewReader(s))
+	decoder.UseNumber()
+	err = decoder.Decode(objPtr)
+	return err
+}
+
+func JsonMarshalString(v interface{}) (s string, err error) {
+	s, err = jsoniter.MarshalToString(v)
+	if err != nil {
+		return "", errors.New(reflect.TypeOf(v).Kind().String() + err.Error())
+	}
+	return s, err
+}

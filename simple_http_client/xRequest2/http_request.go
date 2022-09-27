@@ -7,6 +7,7 @@ import (
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext"
 	"github.com/go-resty/resty/v2"
+	"net/url"
 	"time"
 )
 
@@ -16,12 +17,18 @@ type HttpBase struct {
 }
 
 func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}) (err error) {
-	ctx = xContext.NewChildXContext(ctx, ctx.OperationName()+"_do")
+	method := ""
+	u, err := url.Parse(m.Url)
+	if err == nil {
+		method = u.Path
+	}
+
+	ctx = xContext.NewChildXContext(ctx, method+"[REQ]")
 	defer ctx.Fin()
 	ctx.LogFields("request", m.Url)
-	ctx.Debugf("req %v", utils.MustJson(req))
+	ctx.Debugf("[%v] req %v", method, utils.MustJson(req))
 	//ctx.SetTag(string(xContext.ReqBody), utils.MustJson(req))
-	ctx.SetTag("do_request", ctx.SerializeSpanContext())
+	ctx.SetTag("trace", ctx.SerializeSpanContext())
 	ctx.SetTag("url", m.Url)
 	httpResp, err := m.Cli.R().
 		SetBody(req).
@@ -30,15 +37,18 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 		SetHeader("time", time.Now().String()).
 		Post(m.Url)
 	if err != nil {
+		ctx.SetTag("err", err.Error())
 		return err
 	}
-	ctx.SetTag("http_status", httpResp.StatusCode)
+	defer ctx.SetTag("http_status", httpResp.StatusCode)
 	if httpResp.StatusCode() != 200 {
 		return errors.New(fmt.Sprintf("exception http code %v", httpResp.StatusCode()))
 	}
 	respBody := httpResp.Body()
 	//ctx.SetTag(string(xContext.RespBody), string(respBody))
-	ctx.Debugf("resp %v", string(respBody))
+	//ctx.Debugf("resp %v", string(respBody))
+	ctx.Debugf("[%v] resp %v", method, string(respBody))
+	ctx.LogFields("resp", string(respBody))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
 		return err

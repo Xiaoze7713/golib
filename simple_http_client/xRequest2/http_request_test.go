@@ -39,6 +39,7 @@ func xInit() error {
 		jaeger_trace.SerializeToString)
 	return err
 }
+
 func TestHttpBase_Request(t *testing.T) {
 	cc := HttpBase{
 		Url: "http://39.99.233.6:7775/qa_rank/match",
