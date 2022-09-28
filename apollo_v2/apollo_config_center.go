@@ -26,8 +26,8 @@ type ApolloCliHandler struct {
 }
 
 type SimpleApolloConfig struct {
-	Host    string `json:"host"`
-	Cluster string `json:"cluster"`
+	Host    string `toml:"host"`
+	Cluster string `toml:"cluster"`
 }
 
 func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandler, err error) {
