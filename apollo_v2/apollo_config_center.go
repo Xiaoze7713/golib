@@ -123,20 +123,23 @@ func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
 	return nil
 }
 func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error) {
-	failedErr := errors.New(fmt.Sprintf("unknown config name app %s, namespace %s", appID, ns))
+	failedKey := fmt.Sprintf("config name app %s, namespace %s", appID, ns)
 	_, ok := m.appMap.Load(appID)
 	if !ok {
 		err = m.Register(appID, []string{ns})
+		if err != nil {
+			return err
+		}
 	}
 	cliIfc, _ := m.appMap.Load(appID)
 	handler, ok := cliIfc.(*ApolloCliHandler)
 	if !ok {
-		return failedErr
+		return errors.New("failed get cli " + failedKey)
 	}
 	if jsonCfg := handler.Cli.GetConfig(ns); jsonCfg != nil {
 		content := jsonCfg.GetValue("content")
 		if content != "" {
-			fmt.Println(content)
+			//fmt.Println(content)
 			err = jsoniter.UnmarshalFromString(content, i)
 			if err != nil {
 				return err
@@ -144,7 +147,7 @@ func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error)
 			return nil
 		}
 	}
-	return failedErr
+	return errors.New("failed get config " + failedKey)
 }
 
 func (m *ApolloManager) cacheData(appID, ns string, data interface{}) {
