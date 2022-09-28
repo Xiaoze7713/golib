@@ -11,7 +11,7 @@ type ConfigAny interface {
 
 type SyncHandler interface {
 	any
-	Load() *SyncHandler
+	//Load() *SyncHandler
 }
 
 type SyncManager[T SyncHandler, C ConfigAny] struct {
@@ -41,9 +41,9 @@ func (m *SyncManager[T, C]) LoopUpdate() {
 }
 
 func (m *SyncManager[T, C]) update() {
+	h := m.newF(m.config)
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	h := m.newF(m.config)
 	m.handler = h
 }
 
