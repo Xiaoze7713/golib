@@ -30,6 +30,11 @@ type SimpleApolloConfig struct {
 	Cluster string `toml:"cluster"`
 }
 
+type AppConfig struct {
+	AppID     string `toml:"app_id"`
+	Namespace string `toml:"namespace"`
+}
+
 func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandler, err error) {
 	conf = &config.AppConfig{
 		AppID:             appID,
