@@ -12,14 +12,19 @@ func Test_apollo_run(t *testing.T) {
 	defer func() {
 		time.Sleep(time.Second * 5)
 	}()
-	simpleConfig := &SimpleConfig{
+	simpleConfig := &SimpleApolloConfig{
 		Cluster: "default",
-		Host:    "https://config-center-apollo.singularity-ai.com",
-		AppID:   "expression_v1",
+		Host:    "https://apollo-dev.singularity-ai.com",
 	}
+	AppID := "expression_v1"
 	nsList := []string{"expression_config.json"}
 	//nsList := []string{}
-	err := Init(simpleConfig.Host, simpleConfig.Cluster, simpleConfig.AppID, nsList)
+	err := Init(simpleConfig)
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	err = Handler.Register(AppID, nsList)
 	if err != nil {
 		xlog.Error(err)
 		return
@@ -30,7 +35,7 @@ func Test_apollo_run(t *testing.T) {
 	//_ = xx.GetConfig(ns)
 	//cache := xx.GetApolloConfigCache()
 	mm := map[string]interface{}{}
-	err = Handler.GetJsonData(ns, &mm)
+	err = GetData[map[string]interface{}](AppID, ns, &mm)
 	if err != nil {
 		xlog.Error(err)
 	}

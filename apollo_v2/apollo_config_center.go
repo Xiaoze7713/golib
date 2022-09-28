@@ -1,7 +1,9 @@
 package apollo_v2
 
 import (
+	"errors"
 	"fmt"
+	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/apolloconfig/agollo/v4"
 	"github.com/apolloconfig/agollo/v4/env/config"
 	jsoniter "github.com/json-iterator/go"
@@ -10,23 +12,123 @@ import (
 )
 
 var conf *config.AppConfig
-var once = sync.Once{}
 
-type ApolloHandler struct {
-	nsMap *sync.Map
-	conf  *config.AppConfig
+//var once = sync.Once{}
+
+type ApolloDataType interface {
+	any
 }
 
-var Handler *ApolloHandler
+type ApolloCliHandler struct {
+	nsMap *sync.Map
+	Cli   agollo.Client
+	AppID string
+}
 
-func (m *ApolloHandler) GetJsonData(ns string, i interface{}) (err error) {
-	_, ok := m.nsMap.Load(ns)
-	if !ok {
-		err = m.Register([]string{ns})
+type SimpleApolloConfig struct {
+	Host    string `json:"host"`
+	Cluster string `json:"cluster"`
+}
+
+func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandler, err error) {
+	conf = &config.AppConfig{
+		AppID:             appID,
+		Cluster:           cluster,
+		IP:                host,
+		IsBackupConfig:    true,
+		MustStart:         true,
+		BackupConfigPath:  "conf/apollo/",
+		NamespaceName:     strings.Join(ns, ","),
+		SyncServerTimeout: 30,
 	}
-	cliIfc, _ := m.nsMap.Load(ns)
-	cli, ok := cliIfc.(agollo.Client)
-	if jsonCfg := cli.GetConfig(ns); jsonCfg != nil {
+	apolloClient, err := agollo.StartWithConfig(func() (*config.AppConfig, error) {
+		return conf, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	hdl = &ApolloCliHandler{
+		nsMap: &sync.Map{},
+		Cli:   apolloClient,
+	}
+	return
+}
+
+func combineKey(appID, namespace string) string {
+	return appID + "##" + namespace
+}
+
+type ApolloManager struct {
+	appMap  *sync.Map
+	dataMap *sync.Map
+	conf    *SimpleApolloConfig
+}
+
+var Handler *ApolloManager
+var once = sync.Once{}
+
+func Init(conf *SimpleApolloConfig) (err error) {
+	once.Do(func() {
+		Handler = &ApolloManager{
+			appMap:  &sync.Map{},
+			conf:    conf,
+			dataMap: &sync.Map{},
+		}
+	})
+	return
+}
+
+//
+func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
+	newNsList := []string{}
+	var apolloHandler *ApolloCliHandler
+	app, ok := m.appMap.Load(appID)
+	if !ok {
+		newNsList = nsList
+	} else {
+		apolloHandler, ok = app.(*ApolloCliHandler)
+		if ok {
+			for _, ns := range nsList {
+				_, exist := apolloHandler.nsMap.Load(ns)
+				if exist {
+					continue
+				} else {
+					newNsList = append(newNsList, ns)
+				}
+			}
+		}
+	}
+	if len(newNsList) > 0 {
+		if apolloHandler != nil {
+			for _, ns := range newNsList {
+				val := apolloHandler.Cli.GetConfig(ns)
+				if val == nil {
+					xlog.Errorf("unknown config name app %s, namespace %s in cluster %s, host %s", appID, ns, m.conf.Cluster, m.conf.Host)
+				}
+				//m.dataMap.Store(combineKey(appID, ns), val)
+			}
+		} else {
+			hdl, err := newInstance(m.conf.Host, m.conf.Cluster, appID, newNsList)
+			if err != nil {
+				return err
+			}
+			m.appMap.Store(appID, hdl)
+		}
+	}
+	return nil
+}
+func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error) {
+	failedErr := errors.New(fmt.Sprintf("unknown config name app %s, namespace %s", appID, ns))
+	_, ok := m.appMap.Load(appID)
+	if !ok {
+		err = m.Register(appID, []string{ns})
+	}
+	cliIfc, _ := m.appMap.Load(appID)
+	handler, ok := cliIfc.(*ApolloCliHandler)
+	if !ok {
+		return failedErr
+	}
+	if jsonCfg := handler.Cli.GetConfig(ns); jsonCfg != nil {
 		content := jsonCfg.GetValue("content")
 		if content != "" {
 			fmt.Println(content)
@@ -34,73 +136,30 @@ func (m *ApolloHandler) GetJsonData(ns string, i interface{}) (err error) {
 			if err != nil {
 				return err
 			}
+			return nil
 		}
 	}
-	return nil
+	return failedErr
 }
 
-func (m *ApolloHandler) Register(nsList []string) (err error) {
-	newNsList := []string{}
-	for _, ns := range nsList {
-		_, exist := m.nsMap.Load(ns)
-		if exist {
-			continue
-		} else {
-			newNsList = append(newNsList, ns)
+func (m *ApolloManager) cacheData(appID, ns string, data interface{}) {
+	m.dataMap.Store(combineKey(appID, ns), data)
+}
+
+func GetData[T ApolloDataType](appID, ns string, t *T) (err error) {
+	err = Handler.getJsonData(appID, ns, t)
+	if err == nil {
+		Handler.cacheData(appID, ns, t)
+		return
+	}
+	data, ok := Handler.dataMap.Load(combineKey(appID, ns))
+	if ok {
+		t, ok = data.(*T)
+		if ok {
+			xlog.Warnf("get config failed , use cache")
+			return nil
 		}
 	}
-	if len(newNsList) > 0 {
-		cli, err := m.newApolloClient(newNsList)
-		if err != nil {
-			return err
-		}
-		for _, ns := range newNsList {
-			m.nsMap.Store(ns, cli)
-		}
-	}
-	return nil
-}
-
-func Init(host, cluster, appID string, ns []string) (err error) {
-	once.Do(func() {
-		Handler, err = NewInstance(host, cluster, appID, ns)
-	})
-	return
-}
-
-func NewInstance(host, cluster, appID string, ns []string) (hdl *ApolloHandler, err error) {
-	conf = &config.AppConfig{
-		AppID:            appID,
-		Cluster:          cluster,
-		IP:               host,
-		IsBackupConfig:   true,
-		MustStart:        true,
-		BackupConfigPath: "conf/apollo/",
-	}
-	hdl = &ApolloHandler{
-		nsMap: &sync.Map{},
-		conf:  nil,
-	}
-	hdl.conf = conf
-	if len(ns) > 0 {
-		err = hdl.Register(ns)
-	}
-	return
-}
-
-func (m *ApolloHandler) newApolloClient(ns []string) (agollo.Client, error) {
-	apolloClient, err := agollo.StartWithConfig(func() (*config.AppConfig, error) {
-		return &config.AppConfig{
-			AppID:             m.conf.AppID,
-			Cluster:           m.conf.Cluster,
-			NamespaceName:     strings.Join(ns, ","),
-			IP:                m.conf.IP,
-			IsBackupConfig:    m.conf.IsBackupConfig,
-			SyncServerTimeout: 30,
-		}, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return apolloClient, err
+	xlog.Error("get config error %v", err)
+	return err
 }
