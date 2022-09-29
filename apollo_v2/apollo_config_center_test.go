@@ -35,19 +35,24 @@ func Test_apollo_run(t *testing.T) {
 	//_ = xx.GetConfig(ns)
 	//cache := xx.GetApolloConfigCache()
 	mm := map[string]interface{}{}
-	err = GetData[map[string]interface{}]("expression_v1", "expression_config.json", &mm)
-	if err != nil {
-		xlog.Error(err)
-	}
+	{
+		mm = map[string]interface{}{}
+		err = GetData[map[string]interface{}]("aiyou", "phrase_conv.json", &mm)
+		if err != nil {
+			xlog.Error(err)
+		}
 
-	xlog.Info(utils.MustJson(mm))
-	mm = map[string]interface{}{}
-	err = GetData[map[string]interface{}]("aiyou", "phrase_conv.json", &mm)
-	if err != nil {
-		xlog.Error(err)
+		xlog.Info(utils.MustJson(mm))
 	}
+	{
+		mm = map[string]interface{}{}
+		err = GetData[map[string]interface{}]("expression_v1", "expression_config.json", &mm)
+		if err != nil {
+			xlog.Error(err)
+		}
 
-	xlog.Info(utils.MustJson(mm))
+		xlog.Info(utils.MustJson(mm))
+	}
 	//data, _ := conf.Get("content")
 	//if err != nil {
 	//	fmt.Println(err)

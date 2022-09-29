@@ -21,7 +21,7 @@ type ApolloDataType interface {
 }
 
 type ApolloCliHandler struct {
-	//nsMap *sync.Map
+	nsMap *sync.Map
 	Cli   agollo.Client
 	AppID string
 }
@@ -37,17 +37,17 @@ type AppConfig struct {
 }
 
 func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandler, err error) {
-	conf = &config.AppConfig{
-		AppID:             appID,
-		Cluster:           cluster,
-		IP:                host,
-		IsBackupConfig:    true,
-		MustStart:         true,
-		BackupConfigPath:  "conf/apollo/",
-		NamespaceName:     strings.Join(ns, ","),
-		SyncServerTimeout: 30,
-	}
 	apolloClient, err := agollo.StartWithConfig(func() (*config.AppConfig, error) {
+		conf = &config.AppConfig{
+			AppID:          appID,
+			Cluster:        cluster,
+			IP:             host,
+			IsBackupConfig: false,
+			MustStart:      true,
+			//BackupConfigPath:  "./conf/apollo/",
+			NamespaceName:     strings.Join(ns, ","),
+			SyncServerTimeout: 30,
+		}
 		return conf, nil
 	})
 	if err != nil {
@@ -55,7 +55,8 @@ func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandle
 	}
 	hdl = &ApolloCliHandler{
 		//nsMap: &sync.Map{},
-		Cli: apolloClient,
+		Cli:   apolloClient,
+		AppID: appID,
 	}
 	return
 }
@@ -98,10 +99,14 @@ func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
 		newNsList = nsList
 	} else {
 		apolloHandler, ok = app.(*ApolloCliHandler)
+		if !ok {
+			xlog.Errorf("handler not found app %s %v", appID, utils.MustJson(nsList))
+		}
 	}
 	if apolloHandler == nil {
 		apolloHandler, err = newInstance(m.conf.Host, m.conf.Cluster, appID, newNsList)
 		if err != nil {
+			xlog.Error(err)
 			return err
 		}
 
@@ -118,19 +123,33 @@ func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
 	m.appMap.Store(appID, apolloHandler)
 	return nil
 }
+func (m *ApolloManager) getCliHandler(appID string) (*ApolloCliHandler, bool) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	cliIfc, ok := m.appMap.Load(appID)
+	if !ok {
+		return nil, false
+	} else {
+		handler, ok := cliIfc.(*ApolloCliHandler)
+		if !ok {
+			return nil, false
+		}
+		return handler, true
+	}
+}
+
 func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error) {
 	failedKey := fmt.Sprintf("config name app %s, namespace %s", appID, ns)
-	_, ok := m.appMap.Load(appID)
+	handler, ok := m.getCliHandler(appID)
 	if !ok {
 		err = m.Register(appID, []string{ns})
 		if err != nil {
 			return err
 		}
-	}
-	cliIfc, _ := m.appMap.Load(appID)
-	handler, ok := cliIfc.(*ApolloCliHandler)
-	if !ok {
-		return errors.New("failed get cli " + failedKey)
+		handler, ok = m.getCliHandler(appID)
+		if !ok {
+			return errors.New("get handler failed " + failedKey)
+		}
 	}
 	if jsonCfg := handler.Cli.GetConfig(ns); jsonCfg != nil {
 		content := jsonCfg.GetValue("content")
@@ -165,6 +184,6 @@ func GetData[T ApolloDataType](appID, ns string, t *T) (err error) {
 			return nil
 		}
 	}
-	xlog.Error("get config error %v", err)
+	xlog.Error(err)
 	return err
 }
