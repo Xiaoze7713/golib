@@ -3,6 +3,7 @@ package apollo_v2
 import (
 	"errors"
 	"fmt"
+	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/apolloconfig/agollo/v4"
 	"github.com/apolloconfig/agollo/v4/env/config"
@@ -20,7 +21,7 @@ type ApolloDataType interface {
 }
 
 type ApolloCliHandler struct {
-	nsMap *sync.Map
+	//nsMap *sync.Map
 	Cli   agollo.Client
 	AppID string
 }
@@ -53,8 +54,8 @@ func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandle
 		return nil, err
 	}
 	hdl = &ApolloCliHandler{
-		nsMap: &sync.Map{},
-		Cli:   apolloClient,
+		//nsMap: &sync.Map{},
+		Cli: apolloClient,
 	}
 	return
 }
@@ -67,6 +68,7 @@ type ApolloManager struct {
 	appMap  *sync.Map
 	dataMap *sync.Map
 	conf    *SimpleApolloConfig
+	lock    *sync.RWMutex
 }
 
 var Handler *ApolloManager
@@ -78,6 +80,7 @@ func Init(conf *SimpleApolloConfig) (err error) {
 			appMap:  &sync.Map{},
 			conf:    conf,
 			dataMap: &sync.Map{},
+			lock:    &sync.RWMutex{},
 		}
 	})
 	return
@@ -87,39 +90,32 @@ func Init(conf *SimpleApolloConfig) (err error) {
 func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
 	newNsList := []string{}
 	var apolloHandler *ApolloCliHandler
+	m.lock.Lock()
+	xlog.Infof("new app %v namespace %v", appID, utils.MustJson(nsList))
+	defer m.lock.Unlock()
 	app, ok := m.appMap.Load(appID)
 	if !ok {
 		newNsList = nsList
 	} else {
 		apolloHandler, ok = app.(*ApolloCliHandler)
-		if ok {
-			for _, ns := range nsList {
-				_, exist := apolloHandler.nsMap.Load(ns)
-				if exist {
-					continue
-				} else {
-					newNsList = append(newNsList, ns)
-				}
-			}
+	}
+	if apolloHandler == nil {
+		apolloHandler, err = newInstance(m.conf.Host, m.conf.Cluster, appID, newNsList)
+		if err != nil {
+			return err
 		}
+
 	}
 	if len(newNsList) > 0 {
-		if apolloHandler != nil {
-			for _, ns := range newNsList {
-				val := apolloHandler.Cli.GetConfig(ns)
-				if val == nil {
-					xlog.Errorf("unknown config name app %s, namespace %s in cluster %s, host %s", appID, ns, m.conf.Cluster, m.conf.Host)
-				}
-				//m.dataMap.Store(combineKey(appID, ns), val)
+		for _, ns := range newNsList {
+			val := apolloHandler.Cli.GetConfig(ns)
+			if val == nil {
+				xlog.Errorf("unknown config name app %s, namespace %s in cluster %s, host %s", appID, ns, m.conf.Cluster, m.conf.Host)
 			}
-		} else {
-			hdl, err := newInstance(m.conf.Host, m.conf.Cluster, appID, newNsList)
-			if err != nil {
-				return err
-			}
-			m.appMap.Store(appID, hdl)
+			//m.dataMap.Store(combineKey(appID, ns), val)
 		}
 	}
+	m.appMap.Store(appID, apolloHandler)
 	return nil
 }
 func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error) {
@@ -146,6 +142,7 @@ func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error)
 			}
 			return nil
 		}
+		return errors.New("null content " + failedKey)
 	}
 	return errors.New("failed get config " + failedKey)
 }
