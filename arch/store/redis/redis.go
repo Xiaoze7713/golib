@@ -113,13 +113,13 @@ func HGetAll(ctx *web.WebContext, key string) (map[string]string, error) {
 	return sampleDoStringMap(ctx, "HGETALL", key)
 }
 
-func HDel(ctx *web.WebContext, key string, field []string) (string, error) {
+func HDel(ctx *web.WebContext, key string, field []string) (int64, error) {
 	var params []interface{}
 	params = append(params, key)
 	for _, v := range field {
 		params = append(params, v)
 	}
-	return sampleDoString(ctx, "HDEL", key, params)
+	return sampleDoInt64(ctx, "HDEL", key, params)
 }
 
 func SAdd(ctx *web.WebContext, key string, data []string) error {

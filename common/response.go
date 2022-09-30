@@ -8,6 +8,7 @@
 package common
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"git.singularity-ai.com/backend/library/arch/web"
@@ -43,5 +44,7 @@ func Common(ctx *web.WebContext, httpCode int, errno int, errmsg string, data in
 		ctx.Set("errno", errno)
 		ctx.Set("errmsg", errmsg)
 	}
+	respBody, _ := json.Marshal(resp)
+	ctx.Infof("response :%s", string(respBody))
 	ctx.JSON(httpCode, resp)
 }
