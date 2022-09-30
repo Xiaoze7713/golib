@@ -12,29 +12,47 @@ func Test_apollo_run(t *testing.T) {
 	defer func() {
 		time.Sleep(time.Second * 5)
 	}()
-	simpleConfig := &SimpleConfig{
+	simpleConfig := &SimpleApolloConfig{
 		Cluster: "default",
-		Host:    "https://config-center-apollo.singularity-ai.com",
-		AppID:   "expression_v1",
+		Host:    "https://apollo-dev.singularity-ai.com",
 	}
-	nsList := []string{"expression_config.json"}
+	//AppID := "expression_v1"
+	//nsList := []string{"expression_config.json"}
 	//nsList := []string{}
-	err := Init(simpleConfig.Host, simpleConfig.Cluster, simpleConfig.AppID, nsList)
+	err := Init(simpleConfig)
 	if err != nil {
 		xlog.Error(err)
 		return
 	}
+	//err = Handler.Register(AppID, nsList)
+	//if err != nil {
+	//	xlog.Error(err)
+	//	return
+	//}
 	xlog.Info("init finish")
-	ns := "expression_config.json"
+	//ns := "expression_config.json"
 	//mm := map[string]interface{}{}
 	//_ = xx.GetConfig(ns)
 	//cache := xx.GetApolloConfigCache()
 	mm := map[string]interface{}{}
-	err = Handler.GetJsonData(ns, &mm)
-	if err != nil {
-		xlog.Error(err)
+	{
+		mm = map[string]interface{}{}
+		err = GetData[map[string]interface{}]("aiyou", "phrase_conv.json", &mm)
+		if err != nil {
+			xlog.Error(err)
+		}
+
+		xlog.Info(utils.MustJson(mm))
 	}
-	xlog.Info(utils.MustJson(mm))
+	{
+		mm = map[string]interface{}{}
+		err = GetData[map[string]interface{}]("expression_v1", "expression_config.json", &mm)
+		if err != nil {
+			xlog.Error(err)
+		}
+
+		xlog.Info(utils.MustJson(mm))
+	}
 	//data, _ := conf.Get("content")
 	//if err != nil {
 	//	fmt.Println(err)

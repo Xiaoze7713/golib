@@ -73,8 +73,10 @@ func (m *DMQManager) LoopConsumer() {
 			msgList, err := m.instance.PopL(m.consumerCtx, 0, t)
 			if err != nil {
 				xlog.Errorf("%v read msg error", err)
-				m.ctx.Done()
-				return
+				//m.ctx.Done()
+				//return
+				time.Sleep(time.Millisecond * 500)
+				continue
 			}
 			if len(msgList) <= 0 {
 				time.Sleep(time.Millisecond * 100)

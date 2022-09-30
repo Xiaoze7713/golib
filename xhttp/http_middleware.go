@@ -1,0 +1,20 @@
+package xhttp
+
+import (
+	"git.singularity-ai.com/backend/library/xContext"
+	"github.com/gin-gonic/gin"
+)
+
+func NoRoute(gc *gin.Context) {
+	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	// defer ctx.Fin()
+	ctx.SummaryBy("noRoute", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
+	SetErrorResponse(gc, -1, "path no route")
+}
+
+func NoMethod(gc *gin.Context) {
+	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	// defer ctx.Fin()
+	ctx.SummaryBy("noMethod", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
+	SetErrorResponse(gc, -1, "function not found")
+}
