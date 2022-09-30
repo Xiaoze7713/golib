@@ -34,6 +34,7 @@ func NewWebContextWithGinCtx(ginContext *gin.Context) *WebContext {
 		xctx = xContext.NewXContextWithContextString(ginContext, ginContext.Request.URL.Path, traceID)
 	} else {
 		xctx = xContext.NewXContextWithContext(ginContext, ginContext.Request.URL.Path)
+		ginContext.Set("trace_id", xctx.SerializeSpanContext())
 	}
 	return &WebContext{
 		ginContext,
@@ -60,8 +61,12 @@ func NewWebContext(name string) *WebContext {
 // getTraceIDFromRequest 获取traceID
 // 优先级 header中X_TRACE_ID > header中trace_id > 表单中trace_id
 func getTraceIDFromRequest(c *gin.Context) (traceID string) {
+	if trace, exists := c.Get("trace_id"); exists {
+		if traceIDStr, ok := trace.(string); ok {
+			return traceIDStr
+		}
+	}
 	request := c.Request
-	form := request.URL.Query()
 	// 上下游header透传时
 	if traceID = strings.TrimSpace(request.Header.Get("X_TRACE_ID")); traceID != "" {
 		return
@@ -70,6 +75,7 @@ func getTraceIDFromRequest(c *gin.Context) (traceID string) {
 		return
 	}
 	// 上下游querystring透传时
+	form := request.URL.Query()
 	if traceID = strings.TrimSpace(form.Get("trace_id")); traceID != "" {
 		return
 	}

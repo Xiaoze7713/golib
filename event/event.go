@@ -22,22 +22,28 @@ const (
 	TypeLoginIn   = 2 // 用户登录事件
 	TypeCloseWs   = 3 // 长链断开事件
 
-	SystemVideo    = 1000
-	TypeVideoStart = 1001 // 用户建立RTC连接,开始视频
-	TypeVideoHeart = 1002 // 视频心跳事件
-	TypeVideoEnd   = 1003 // 视频结束事件
+	SystemVideo      = 1000
+	TypeVideoStart   = 1001 // 用户建立RTC连接,开始视频
+	TypeVideoHeart   = 1002 // 视频心跳事件
+	TypeVideoEnd     = 1003 // 视频结束事件
+	TypeSpeakStart   = 1011 // 用户开始说话
+	TypeSpeakEnd     = 1012 // 用户结束说话
+	TypeAISpeakStart = 1015 // AI开始说话
+	TypeAISpeakEnd   = 1016 // AI结束说话
 
 	SystemTask = 2000
 
 	SystemAppTrans = 3000 // app透传
 
-	SystemAppFeatures     = 4000 // app功能api
-	TypeSendSoundMessage  = 4001 // 用户发送音视频消息
-	TypeSendImMessage     = 4002 // 用户发送IM消息
-	TypeMarkMessage       = 4003 // 用户标记消息(点赞、点踩等)
-	TypeReplySoundMessage = 4101 // 策略回复音视频消息
-	TypeReplyImMessage    = 4102 // 策略回复IM消息
-	TypeUpdateFeature     = 4300 // 更新特效
+	SystemAppFeatures      = 4000 // app功能api
+	TypeSendSoundMessage   = 4001 // 用户发送音视频消息
+	TypeSendImMessage      = 4002 // 用户发送IM消息
+	TypeMarkMessage        = 4003 // 用户标记消息(点赞、点踩等)
+	TypeReplySoundMessage  = 4101 // 策略回复音视频消息
+	TypeReplyImMessage     = 4102 // 策略回复IM消息
+	TypeUpdateFeature      = 4300 // 更新特征
+	TypeUpdateUserFeature  = 4301 // 更新用户特效
+	TypeUpdateRobotFeature = 4302 // 更新robot特效
 )
 
 const EventKafkaTopic = "event"

@@ -34,8 +34,6 @@ func WebLogger() web.WebHandlerFunc {
 
 		body, _ := ioutil.ReadAll(c.Request.Body)
 		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
-
-		c.Writer.Header().Set("X_TRACE_ID", c.SerializeSpanContext())
 		// 处理请求
 		c.Next()
 
@@ -104,6 +102,7 @@ func WebLogger() web.WebHandlerFunc {
 		} else {
 			c.Info(msg)
 		}
+		// c.Writer.Header().Set("X_TRACE_ID", c.SerializeSpanContext())
 		c.SetTag("idc", env.IDC())
 		c.SetTag("header", header)
 		c.SetTag("req", string(body))
