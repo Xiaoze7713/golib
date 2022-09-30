@@ -16,26 +16,55 @@ type HttpBase struct {
 	Cli *resty.Client
 }
 
-func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}) (err error) {
+const (
+	METHOD_POST = "post"
+	METHOD_GET  = "get"
+)
+
+func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
+	return m.Request(ctx, req, resp, METHOD_POST, headersMap...)
+}
+
+func (m *HttpBase) Get(ctx *xContext.XContext, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
+	return m.Request(ctx, req, resp, METHOD_GET, headersMap...)
+}
+
+func (m *HttpBase) Request(ctx *xContext.XContext, req interface{}, resp interface{}, httpMethod string, headersMap ...map[string]string) (err error) {
 	method := ""
 	u, err := url.Parse(m.Url)
 	if err == nil {
 		method = u.Path
 	}
-
 	ctx = xContext.NewChildXContext(ctx, method+"[REQ]")
 	defer ctx.Fin()
-	ctx.LogFields("request", m.Url)
+	ctx.LogFields("host", m.Url)
 	ctx.Infof("[%v] req %v", method, utils.MustJson(req))
-	//ctx.SetTag(string(xContext.ReqBody), utils.MustJson(req))
+	ctx.LogFields(string(xContext.ReqBody), utils.MustJson(req))
 	ctx.SetTag("trace", ctx.SerializeSpanContext())
-	ctx.SetTag("url", m.Url)
-	httpResp, err := m.Cli.R().
+	//ctx.SetTag("url", m.Url)
+	httpRequest := m.Cli.R().
 		SetBody(req).
 		SetHeader("Content-Type", "application/json").
 		SetHeader("trace_id", ctx.SerializeSpanContext()).
-		SetHeader("time", time.Now().String()).
-		Post(m.Url)
+		SetHeader("time", time.Now().String())
+	if len(headersMap) > 0 {
+		for _, headers := range headersMap {
+			httpRequest.SetHeaders(headers)
+		}
+	}
+	ctx.LogFields("headers", utils.MustJson(httpRequest.Header))
+	var httpResp *resty.Response
+	switch httpMethod {
+	case METHOD_POST:
+		httpResp, err = httpRequest.
+			Post(m.Url)
+	case METHOD_GET:
+		httpResp, err = httpRequest.
+			Get(m.Url)
+	default:
+		httpResp, err = httpRequest.
+			Get(m.Url)
+	}
 	if err != nil {
 		ctx.SetTag("err", err.Error())
 		return err
@@ -48,7 +77,8 @@ func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{
 	//ctx.SetTag(string(xContext.RespBody), string(respBody))
 	//ctx.Debugf("resp %v", string(respBody))
 	ctx.Infof("[%v] resp %v", method, string(respBody))
-	ctx.LogFields("resp", string(respBody))
+	ctx.LogFields(string(xContext.RespBody), string(respBody))
+	ctx.LogFields(string(xContext.HttpRespHeader), utils.MustJson(httpResp.Header()))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
 		return err

@@ -74,7 +74,7 @@ func NewLogger() *Logger {
 	l.tunnel = make(chan *Record, tunnel_size_default)
 	l.c = make(chan bool, 1)
 	l.level = DEBUG
-	l.layout = "2006-01-02T15:04:05"
+	l.layout = "2006-01-02T15:04:05.000"
 	l.skipStr = "xContextLog.go"
 
 	go boostrapLogWriter(l)
