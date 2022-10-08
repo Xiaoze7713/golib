@@ -1,7 +1,5 @@
 package xContext
 
-import "github.com/go-stack/stack"
-
 func (x *XContext) InfoKV(kvm KVMType) {
 	x.LogFields(kvm.ToAnyArgs()...)
 	x.LoggerIF.Info(append([]interface{}{x.XContextPrefix()}, x.KVsFormats(kvm))...)
@@ -21,13 +19,6 @@ func (x *XContext) Warn(args ...interface{}) {
 
 func (x *XContext) Error(args ...interface{}) {
 	x.LoggerIF.Error(append([]interface{}{x.XContextPrefix()}, x.ArgsFormats(args...))...)
-}
-
-func (x *XContext) ErrorE(e error) {
-	x.SetTag(string(ExecStatus), "error")
-	x.LogFields(string(Error), e.Error())
-	x.MetricsIF.CounterBy("err", x.TagNames2PLabels(Error)).Add(1)
-	x.LoggerIF.Error(append([]interface{}{x.XContextPrefix()}, e.Error(), stack.Caller(7))...)
 }
 
 func (x *XContext) Fatal(args ...interface{}) {

@@ -41,6 +41,7 @@ const (
 	ClientIP       = ext.StringTagName("client_ip")
 	UserAgent      = ext.StringTagName("user_agent")
 	Error          = ext.StringTagName("error")
+	Alert          = ext.StringTagName("alert")
 	ExecStatus     = ext.StringTagName("exec_status")
 	TopicName      = ext.StringTagName("topic_name")
 	ConsumerSource = ext.StringTagName("consumer_source")
@@ -96,6 +97,17 @@ func emptyIDFunc(x *XContext) IDType {
 }
 func emptyDurFunc(x *XContext) time.Duration {
 	return 0
+}
+
+func (x *XContext) ErrorAlert(e error) {
+	x.SetTag(string(ExecStatus), "error")
+	x.LogFields(string(Error), e.Error())
+	x.MetricsIF.CounterBy("err", x.TagNames2PLabels(Error)).Add(1)
+}
+
+func (x *XContext) Alert(i interface{}) {
+	x.LogFields(string(Alert), utils.MustJson(i))
+	x.MetricsIF.CounterBy("alert", x.TagNames2PLabels(Alert)).Add(1)
 }
 
 // type ContextOptions interface {
