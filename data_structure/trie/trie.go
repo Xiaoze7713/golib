@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"git.singularity-ai.com/backend/library/utils"
 	"sort"
 	"unicode"
 )
@@ -72,7 +73,11 @@ func (m *DATrie) Insert(word string, data interface{}) {
 		c := s[idx]
 		isLeaf := idx == len(s)-1
 		if !node.HasNext(string(c)) {
-			node.AddNode(string(c), &Node{isLeaf: isLeaf, leafData: data, nextMap: map[string]*Node{}})
+			nodeData := data
+			if !isLeaf {
+				nodeData = nil
+			}
+			node.AddNode(string(c), &Node{isLeaf: isLeaf, leafData: nodeData, nextMap: map[string]*Node{}})
 		}
 		node = node.GetNode(string(c))
 		idx += 1
@@ -123,28 +128,86 @@ func (m *DATrie) prefix(word string) (results []*Result) {
 	return results
 }
 
+func (m *DATrie) deepSearch(node *Node, sentence string, startIdx int, idx int, ignoreCase bool) (resultList []*Result) {
+	if node == nil {
+		return nil
+	}
+	runeSentence := []rune(sentence)
+	println("sentence", string(runeSentence), startIdx, idx, string(runeSentence[startIdx:idx+1]), utils.MustJson(node.nextMap), "leaf", node.isLeaf, "data", utils.MustJson(node.leafData))
+	if node.IsLeaf() {
+		resultList = append(resultList, &Result{
+			Str:  string(runeSentence[startIdx:idx]),
+			Data: node.GetData(),
+		})
+	}
+	if idx >= len([]rune(sentence)) {
+		return resultList
+	}
+	c := runeSentence[idx]
+	nodeKey := string(c)
+	//println("node [", nodeKey, "]")
+	//println(nodeKey)
+	// 优先保持大小写
+	if !ignoreCase {
+		if !node.HasNext(nodeKey) {
+			return resultList
+		}
+		searchList := m.deepSearch(node.GetNode(nodeKey), sentence, startIdx, idx+1, ignoreCase)
+		if len(searchList) > 0 {
+			resultList = append(resultList, searchList...)
+		}
+	} else if ignoreCase {
+		upKey := string(unicode.ToUpper(c))
+		lowerKey := string(unicode.ToLower(c))
+		//println(upKey, lowerKey)
+		if node.HasNext(upKey) {
+			//println("upper", upKey)
+			searchList := m.deepSearch(node.GetNode(upKey), sentence, startIdx, idx+1, ignoreCase)
+			if len(searchList) > 0 {
+				resultList = append(resultList, searchList...)
+			}
+		}
+		if node.HasNext(lowerKey) {
+			//println("lower", lowerKey)
+			searchList := m.deepSearch(node.GetNode(lowerKey), sentence, startIdx, idx+1, ignoreCase)
+			if len(searchList) > 0 {
+				resultList = append(resultList, searchList...)
+			}
+		}
+	}
+	return resultList
+}
+
 func (m *DATrie) maxPrefix(word string, startIdx int, ignoreCase bool) (result *Result) {
 	idx := startIdx
 	node := m.root
 	results := []*Result{nil}
 	s := []rune(word)
+	println(string(s[idx:]))
 	for node != nil && idx < len(s) {
+		// c sentence word
 		c := s[idx]
 		nodeKey := string(c)
+		//println("node [", nodeKey, "]")
 		//println(nodeKey)
-		//println(utils.MustJson(node.nextMap))
+		println(utils.MustJson(node.nextMap))
 		if ignoreCase {
-			if node.HasNext(string(unicode.ToUpper(c))) {
-				nodeKey = string(unicode.ToUpper(c))
-			} else if node.HasNext(string(unicode.ToLower(c))) {
-				nodeKey = string(unicode.ToLower(c))
+			// 优先保持大小写
+			if node.HasNext(nodeKey) {
+
 			} else {
-				return results[len(results)-1]
+				upKey := string(unicode.ToUpper(c))
+				lowerKey := string(unicode.ToLower(c))
+				if node.HasNext(upKey) {
+					nodeKey = upKey
+				} else if node.HasNext(lowerKey) {
+					nodeKey = lowerKey
+				}
 			}
-		} else {
-			if !node.HasNext(nodeKey) {
-				return results[len(results)-1]
-			}
+		}
+		println(nodeKey)
+		if !node.HasNext(nodeKey) {
+			return results[len(results)-1]
 		}
 		//println(nodeKey)
 		node = node.GetNode(nodeKey)
@@ -204,10 +267,15 @@ func (m *DATrie) Match3(content string) (result []*Result) {
 	i := 0
 	resultList := []*Result{}
 	for i < l {
-		matchResult := m.maxPrefix(content, i, false)
-		if matchResult != nil {
-			resultList = append(resultList, matchResult)
-			i += len([]rune(matchResult.Str))
+		matchResults := m.deepSearch(m.root, content, i, i, false)
+		if len(matchResults) > 0 {
+			sort.Slice(matchResults, func(i, j int) bool {
+				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
+			})
+			res := matchResults[len(matchResults)-1]
+			println("match", res.Str, utils.MustJson(res.Data))
+			resultList = append(resultList, res)
+			i += len([]rune(res.Str))
 		} else {
 			resultList = append(resultList, &Result{
 				Str:  string(runeContent[i]),
@@ -224,10 +292,16 @@ func (m *DATrie) MatchIgc(content string) (result []*Result) {
 	i := 0
 	resultList := []*Result{}
 	for i < l {
-		matchResult := m.maxPrefix(content, i, true)
-		if matchResult != nil {
-			resultList = append(resultList, matchResult)
-			i += len([]rune(matchResult.Str))
+		println("igc start ", content, i)
+		matchResults := m.deepSearch(m.root, content, i, i, true)
+		if len(matchResults) > 0 {
+			sort.Slice(matchResults, func(i, j int) bool {
+				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
+			})
+			res := matchResults[len(matchResults)-1]
+			println("match", res.Str, utils.MustJson(res.Data))
+			resultList = append(resultList, res)
+			i += len([]rune(res.Str))
 		} else {
 			resultList = append(resultList, &Result{
 				Str:  string(runeContent[i]),
