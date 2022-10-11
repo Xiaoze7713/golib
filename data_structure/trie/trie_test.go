@@ -1,9 +1,9 @@
 package trie
 
 import (
+	"git.singularity-ai.com/backend/library/easy_process"
 	"git.singularity-ai.com/backend/library/utils"
 	"regexp"
-	"src/common/easy_process"
 	"strings"
 	"testing"
 )
@@ -37,7 +37,7 @@ func TestTrieIgc(t *testing.T) {
 	r.Insert("hehe", []string{"呵呵"})
 	//r.Insert("湖南", "湖南")
 	//r.Insert("湖北", "湖北省")
-	results := r.MatchIgc("hi hello")
+	results := r.MatchIgc("hi hello hehello")
 	println(utils.MustJson(results))
 	sb := strings.Builder{}
 	for _, r := range results {

@@ -133,7 +133,7 @@ func (m *DATrie) deepSearch(node *Node, sentence string, startIdx int, idx int, 
 		return nil
 	}
 	runeSentence := []rune(sentence)
-	println("sentence", string(runeSentence), startIdx, idx, string(runeSentence[startIdx:idx+1]), utils.MustJson(node.nextMap), "leaf", node.isLeaf, "data", utils.MustJson(node.leafData))
+	//println("sentence", string(runeSentence), startIdx, idx, string(runeSentence[startIdx:idx+1]), utils.MustJson(node.nextMap), "leaf", node.isLeaf, "data", utils.MustJson(node.leafData))
 	if node.IsLeaf() {
 		resultList = append(resultList, &Result{
 			Str:  string(runeSentence[startIdx:idx]),
@@ -273,7 +273,7 @@ func (m *DATrie) Match3(content string) (result []*Result) {
 				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
 			})
 			res := matchResults[len(matchResults)-1]
-			println("match", res.Str, utils.MustJson(res.Data))
+			//println("match", res.Str, utils.MustJson(res.Data))
 			resultList = append(resultList, res)
 			i += len([]rune(res.Str))
 		} else {
@@ -292,14 +292,14 @@ func (m *DATrie) MatchIgc(content string) (result []*Result) {
 	i := 0
 	resultList := []*Result{}
 	for i < l {
-		println("igc start ", content, i)
+		//println("igc start ", content, i)
 		matchResults := m.deepSearch(m.root, content, i, i, true)
 		if len(matchResults) > 0 {
 			sort.Slice(matchResults, func(i, j int) bool {
 				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
 			})
 			res := matchResults[len(matchResults)-1]
-			println("match", res.Str, utils.MustJson(res.Data))
+			//println("match", res.Str, utils.MustJson(res.Data))
 			resultList = append(resultList, res)
 			i += len([]rune(res.Str))
 		} else {
