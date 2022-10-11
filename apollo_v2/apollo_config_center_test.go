@@ -14,7 +14,7 @@ func Test_apollo_run(t *testing.T) {
 	}()
 	simpleConfig := &SimpleApolloConfig{
 		Cluster: "default",
-		Host:    "https://apollo-dev.singularity-ai.com",
+		Host:    "https://apollo-test.singularity-ai.com",
 	}
 	//AppID := "expression_v1"
 	//nsList := []string{"expression_config.json"}
@@ -35,6 +35,15 @@ func Test_apollo_run(t *testing.T) {
 	//_ = xx.GetConfig(ns)
 	//cache := xx.GetApolloConfigCache()
 	mm := map[string]interface{}{}
+	{
+		mm = map[string]interface{}{}
+		err = GetData[map[string]interface{}]("aiyou", "bad_words.json", &mm)
+		if err != nil {
+			xlog.Error(err)
+		}
+
+		xlog.Info(utils.MustJson(mm))
+	}
 	{
 		mm = map[string]interface{}{}
 		err = GetData[map[string]interface{}]("aiyou", "phrase_conv.json", &mm)

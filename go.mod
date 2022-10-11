@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/DeanThompson/ginpprof v0.0.0-20201112072838-007b1e56b2e1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.2+incompatible
-	github.com/apolloconfig/agollo/v4 v4.2.0
+	github.com/apolloconfig/agollo/v4 v4.2.1
 	github.com/confluentinc/confluent-kafka-go v1.8.2
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis/v8 v8.11.5

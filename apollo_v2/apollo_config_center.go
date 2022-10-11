@@ -36,7 +36,8 @@ type AppConfig struct {
 	Namespace string `toml:"namespace"`
 }
 
-func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandler, err error) {
+func newInstance(host, cluster, appID string, nsList []string) (hdl *ApolloCliHandler, err error) {
+	ns := strings.Join(nsList, ",")
 	apolloClient, err := agollo.StartWithConfig(func() (*config.AppConfig, error) {
 		conf = &config.AppConfig{
 			AppID:          appID,
@@ -45,7 +46,7 @@ func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandle
 			IsBackupConfig: false,
 			MustStart:      true,
 			//BackupConfigPath:  "./conf/apollo/",
-			NamespaceName:     strings.Join(ns, ","),
+			NamespaceName:     ns,
 			SyncServerTimeout: 30,
 		}
 		return conf, nil
@@ -54,9 +55,12 @@ func newInstance(host, cluster, appID string, ns []string) (hdl *ApolloCliHandle
 		return nil, err
 	}
 	hdl = &ApolloCliHandler{
-		//nsMap: &sync.Map{},
+		nsMap: &sync.Map{},
 		Cli:   apolloClient,
 		AppID: appID,
+	}
+	for _, ns = range nsList {
+		hdl.nsMap.Store(ns, true)
 	}
 	return
 }
@@ -110,6 +114,16 @@ func (m *ApolloManager) Register(appID string, nsList []string) (err error) {
 			return err
 		}
 
+	} else {
+		newNsList = nsList
+		apolloHandler.nsMap.Range(func(key, value any) bool {
+			ns := key.(string)
+			println(ns)
+			newNsList = append(newNsList, ns)
+			return true
+		})
+		println("new ns ", utils.MustJson(newNsList))
+		apolloHandler, err = newInstance(m.conf.Host, m.conf.Cluster, appID, newNsList)
 	}
 	if len(newNsList) > 0 {
 		for _, ns := range newNsList {
@@ -151,7 +165,19 @@ func (m *ApolloManager) getJsonData(appID, ns string, i interface{}) (err error)
 			return errors.New("get handler failed " + failedKey)
 		}
 	}
-	if jsonCfg := handler.Cli.GetConfig(ns); jsonCfg != nil {
+	jsonCfg := handler.Cli.GetConfigAndInit(ns)
+	if jsonCfg == nil {
+		err = m.Register(appID, []string{ns})
+		if err != nil {
+			return err
+		}
+		handler, ok = m.getCliHandler(appID)
+		if !ok {
+			return errors.New("get handler failed " + failedKey)
+		}
+	}
+	jsonCfg = handler.Cli.GetConfigAndInit(ns)
+	if jsonCfg != nil {
 		content := jsonCfg.GetValue("content")
 		if content != "" {
 			//fmt.Println(content)
