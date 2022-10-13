@@ -22,3 +22,9 @@ func TestMap(t *testing.T) {
 	})
 	println(utils.MustJson(llnew))
 }
+
+func TestMulti(t *testing.T) {
+	ll := []int64{1, 3, 5, 7, 9, 2, 4, 6, 8, 0}
+	newLL := ChoiceMulti(ll, 4)
+	fmt.Println(newLL)
+}
