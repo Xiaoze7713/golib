@@ -5,8 +5,10 @@ import (
 )
 
 type SimpleHttpServerConfig struct {
-	ServerURL string `toml:"server_url"`
-	TimeOut   int64  `toml:"time_out"`
+	ServerURL string   `toml:"server_url"`
+	TimeOut   int64    `toml:"time_out"`
+	Hosts     []string `toml:"hosts"`
+	PathList  []string `toml:"path_list"`
 }
 
 type SimpleRPCServerConfig struct {
