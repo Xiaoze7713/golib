@@ -64,6 +64,7 @@ func Init(filePath string) error {
 		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&parseTime=%t&loc=Local",
 			configItem.User, configItem.Password, configItem.Host, configItem.DatabaseName, configItem.CharSet, configItem.ParseTime)
 		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		db.Logger.LogMode(0)
 		if err != nil {
 			log.Errorln("mysql open failed,db=%s,err=%s", dbName, err.Error())
 			continue

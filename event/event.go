@@ -44,6 +44,12 @@ const (
 	TypeUpdateFeature      = 4300 // 更新特征
 	TypeUpdateUserFeature  = 4301 // 更新用户特效
 	TypeUpdateRobotFeature = 4302 // 更新robot特效
+
+	SystemDelayPolicy = 6000 // 延迟策略触发
+	TypeOffline3D     = 6001 // 用户3天未登录或回复消息
+	TypeOffline7D     = 6002 // 用户7天未登录或回复消息
+	TypeOffline30D    = 6003 // 用户30天未登录或回复消息
+	TypeBirthDay      = 6004 // 用户当天生日
 )
 
 const EventKafkaTopic = "event"

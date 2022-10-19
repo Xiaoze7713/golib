@@ -119,7 +119,7 @@ func HDel(ctx *web.WebContext, key string, field []string) (int64, error) {
 	for _, v := range field {
 		params = append(params, v)
 	}
-	return sampleDoInt64(ctx, "HDEL", key, params)
+	return sampleDoInt64(ctx, "HDEL", params...)
 }
 
 func SAdd(ctx *web.WebContext, key string, data []string) error {
