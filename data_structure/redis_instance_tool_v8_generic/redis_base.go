@@ -1,7 +1,6 @@
 package redis_instance_tool
 
 import (
-	"git.singularity-ai.com/backend/library/data_structure/message_queue"
 	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -25,7 +24,7 @@ type ToolOption interface {
 	Apply(r *RedisToolBase)
 }
 
-func (m *RedisToolBase) Init(conf *message_queue.MQConfig) {
+func (m *RedisToolBase) Init() {
 	//m.config = conf
 	if m.MarshalInterface == nil {
 		json := MarshalJson{}

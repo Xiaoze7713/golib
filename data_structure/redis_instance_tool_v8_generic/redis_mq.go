@@ -7,16 +7,16 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type RedisMQ struct {
-	*RedisQueue
+type RedisMQ[T any] struct {
+	*RedisQueue[T]
 	config *message_queue.MQConfig
 }
 
-func (m *RedisMQ) Config() *message_queue.MQConfig {
+func (m *RedisMQ[T]) Config() *message_queue.MQConfig {
 	return m.config
 }
 
-func NewRedisMQ(msConfig *message_queue.MQConfig, client redis.Cmdable) (queue message_queue.MQInstance, err error) {
+func NewRedisMQ[T any](msConfig *message_queue.MQConfig, client redis.Cmdable) (queue message_queue.MQInstance[T], err error) {
 	if msConfig.Topic == "" {
 		xlog.Warn("queue null business key")
 		//err = errors.New("null business key")
@@ -28,8 +28,8 @@ func NewRedisMQ(msConfig *message_queue.MQConfig, client redis.Cmdable) (queue m
 		xlog.Error(err)
 		return
 	}
-	redisQueue, err := NewQueue(msConfig.Topic, client)
-	redisMessageQueue := &RedisMQ{
+	redisQueue, err := NewQueue[T](msConfig.Topic, client)
+	redisMessageQueue := &RedisMQ[T]{
 		RedisQueue: redisQueue,
 		config:     msConfig,
 	}

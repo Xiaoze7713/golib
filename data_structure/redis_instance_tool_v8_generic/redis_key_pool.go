@@ -3,25 +3,28 @@ package redis_instance_tool
 import (
 	"context"
 	"errors"
+	"fmt"
+	"git.singularity-ai.com/backend/library/type_def"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
+	"reflect"
 	"time"
 )
 
-type KeyPool struct {
+type KeyPool[K type_def.BaseValueType, V any] struct {
 	RedisToolBase
 	nx     bool
 	expire int // second
 }
 
-func NewKeyPool(businessKey, sep string, client redis.Cmdable, nx bool, duration int) (keyPool *KeyPool, err error) {
+func NewKeyPool[K type_def.BaseValueType, V any](businessKey, sep string, client redis.Cmdable, nx bool, duration int) (keyPool *KeyPool[K, V], err error) {
 	if businessKey == "" {
 		xlog.Warn("key pool null business key")
 	}
 	if client == nil {
 		err = errors.New("redis pool is nil")
 	}
-	keyPool = &KeyPool{
+	keyPool = &KeyPool[K, V]{
 		RedisToolBase{
 			client:  client,
 			selfKey: businessKey,
@@ -36,16 +39,16 @@ func NewKeyPool(businessKey, sep string, client redis.Cmdable, nx bool, duration
 	return
 }
 
-func (m *KeyPool) SelfKey(s string) (key string) {
-	return m.selfKey + m.sep + s
+func (m *KeyPool[K, V]) SelfKey(s K) (key string) {
+	return m.selfKey + m.sep + fmt.Sprintf("%v", s)
 }
 
-func (m *KeyPool) SelfSep() (sep string) {
+func (m *KeyPool[K, V]) SelfSep() (sep string) {
 	return m.sep
 }
 
-func (m *KeyPool) Set(ctx context.Context, key string, valueIF interface{}) (err error) {
-	value, err := m.MarshalInterface.marshalFunction(valueIF)
+func (m *KeyPool[K, V]) Set(ctx context.Context, key K, valueIF V) (err error) {
+	value, err := m.marshalFunction(valueIF)
 	if err != nil {
 		return err
 	}
@@ -62,7 +65,7 @@ func (m *KeyPool) Set(ctx context.Context, key string, valueIF interface{}) (err
 	return
 }
 
-func (m *KeyPool) Get(ctx context.Context, key string) (resStr string, err error) {
+func (m *KeyPool[K, V]) Get(ctx context.Context, key K) (resStr string, err error) {
 	resStr, err = m.client.Get(ctx, m.SelfKey(key)).Result()
 	if err == redis.Nil {
 		return "", nil
@@ -70,19 +73,25 @@ func (m *KeyPool) Get(ctx context.Context, key string) (resStr string, err error
 	return
 }
 
-func (m *KeyPool) Del(ctx context.Context, key string) (err error) {
+func (m *KeyPool[K, V]) Del(ctx context.Context, key K) (err error) {
 	_, err = m.client.Del(ctx, m.SelfKey(key)).Result()
 	return
 }
 
-func (m *KeyPool) GetAndUnmarshal(ctx context.Context, key string, ifc interface{}) (err error) {
+func (m *KeyPool[K, V]) GetAndUnmarshal(ctx context.Context, key K) (value *V, err error) {
 	resBytes, err := m.client.Get(ctx, m.SelfKey(key)).Result()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = m.MarshalInterface.unmarshalFunction(resBytes, ifc)
+	var tp V
+	v := reflect.New(reflect.TypeOf(tp))
+	value, ok := v.Interface().(*V)
+	if !ok {
+		xlog.Error("failed conv")
+	}
+	err = m.MarshalInterface.unmarshalFunction(resBytes, value)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return value, nil
 }

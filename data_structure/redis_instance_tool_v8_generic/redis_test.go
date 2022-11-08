@@ -71,17 +71,17 @@ func TestCounter(t *testing.T) {
 func TestDQ(t *testing.T) {
 	xlog.SetupLogDefault()
 	cli := redis.NewClient(&redis.Options{
-		Addr:     "39.99.156.201:6379",
-		Password: "",
+		Addr:     "39.99.233.6:6379",
+		Password: "redis",
 		DB:       0,
 	})
-	dq, err := NewDelayQueue[string](cli)
+	dq, err := NewDelayQueue[string]("dq_test", "_", cli)
 	type Msg struct {
 		Text string `json:"text"`
 	}
 	ctx := context.Background()
 	user := "user"
-	err = dq.Add(ctx, user, "xx", 5, 0)
+	err = dq.Add(ctx, user, "xx", 5, 10)
 	if err != nil {
 		xlog.Errorf("%v", err)
 	}
@@ -90,7 +90,7 @@ func TestDQ(t *testing.T) {
 	if err != nil {
 		xlog.Errorf("%v", err)
 	}
-	xlog.Infof("data %v", resList)
+	xlog.Infof("data %v", utils.MustJson(resList))
 
 	time.Sleep(time.Second * 5)
 }

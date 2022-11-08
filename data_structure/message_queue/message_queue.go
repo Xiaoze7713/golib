@@ -21,9 +21,9 @@ func (m *MQConfig) String() string {
 	return fmt.Sprintf("%s", s)
 }
 
-type MQInstance interface {
-	Push(ctx context.Context, data interface{}) error
-	Pop(ctx context.Context, block bool) (interface{}, error)
+type MQInstance[T any] interface {
+	Push(ctx context.Context, data *T) error
+	Pop(ctx context.Context, block bool) (*T, error)
 	Name() string
 	Config() *MQConfig
 }
@@ -32,25 +32,25 @@ type MQMsgHandlerFunc func(interface{})
 
 func DoNoting(i interface{}) {}
 
-type MQManager struct {
-	instance        MQInstance
+type MQManager[T any] struct {
+	instance        MQInstance[T]
 	handlerFunction MQMsgHandlerFunc
 	consumerCtx     context.Context
 	consumerCancel  context.CancelFunc
 	producerCtx     context.Context
 	producerCancel  context.CancelFunc
 	ctx             context.Context
-	msgIn           chan interface{}
-	msgOut          chan interface{}
+	msgIn           chan *T
+	msgOut          chan *T
 }
 
-func NewMQManager(instance MQInstance, handler MQMsgHandlerFunc) (mqMgr *MQManager, err error) {
-	mqMgr = &MQManager{
+func NewMQManager[T any](instance MQInstance[T], handler MQMsgHandlerFunc) (mqMgr *MQManager[T], err error) {
+	mqMgr = &MQManager[T]{
 		instance:        instance,
 		handlerFunction: handler,
 		ctx:             context.Background(),
-		msgIn:           make(chan interface{}, 10),
-		msgOut:          make(chan interface{}, 10),
+		msgIn:           make(chan *T, 1000),
+		msgOut:          make(chan *T, 10),
 	}
 	mqMgr.consumerCtx, mqMgr.consumerCancel = context.WithCancel(mqMgr.ctx)
 	mqMgr.producerCtx, mqMgr.producerCancel = context.WithCancel(mqMgr.ctx)
@@ -58,7 +58,7 @@ func NewMQManager(instance MQInstance, handler MQMsgHandlerFunc) (mqMgr *MQManag
 	return mqMgr, nil
 }
 
-func (m *MQManager) LoopConsumer() {
+func (m *MQManager[T]) LoopConsumer() {
 	xlog.Infof("start consumer topic=%v, type=%v, broker=%v, ", m.instance.Config().Topic, m.instance.Config().InstanceType, m.instance.Config().Broker)
 	for {
 		select {
@@ -81,12 +81,12 @@ func (m *MQManager) LoopConsumer() {
 				//m.ctx.Done()
 				continue
 			}
-			msg := msgI.(string)
-			m.msgIn <- msg
+			//msg := msgI.(string)
+			m.msgIn <- msgI
 		}
 	}
 }
-func (m *MQManager) LoopProducer() {
+func (m *MQManager[T]) LoopProducer() {
 	for {
 		select {
 		case msg := <-m.msgOut:
@@ -105,12 +105,12 @@ func (m *MQManager) LoopProducer() {
 	}
 }
 
-func (m *MQManager) Send(msg interface{}) error {
+func (m *MQManager[T]) Send(msg *T) error {
 	m.msgOut <- msg
 	return nil
 }
 
-func (m *MQManager) Close() {
+func (m *MQManager[T]) Close() {
 	m.producerCancel()
 	m.consumerCancel()
 }
@@ -127,7 +127,7 @@ func (m *MQManager) Close() {
 //}
 //
 
-func (m *MQManager) RunProducer() {
+func (m *MQManager[T]) RunProducer() {
 	go func() {
 		if r := recover(); r != any(nil) {
 			m.ctx.Done()
@@ -141,7 +141,7 @@ func (m *MQManager) RunProducer() {
 	}
 }
 
-func (m *MQManager) RunConsumer() {
+func (m *MQManager[T]) RunConsumer() {
 	go func() {
 		if r := recover(); r != any(nil) {
 			m.ctx.Done()

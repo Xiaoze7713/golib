@@ -7,7 +7,6 @@ import (
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
-	jsoniter "github.com/json-iterator/go"
 	"reflect"
 	"strconv"
 	"time"
@@ -32,10 +31,13 @@ func (m *RedisDelayQueue[T]) Init(key string) error {
 //	return m.config
 //}
 
-func NewDelayQueue[T type_def.BaseValueType](client redis.Cmdable) (dQueue *RedisDelayQueue[T], err error) {
+func NewDelayQueue[T type_def.BaseValueType | type_def.PtrValueType](key, sep string, client redis.Cmdable) (dQueue *RedisDelayQueue[T], err error) {
 	dQueue = &RedisDelayQueue[T]{
 		RedisToolBase: RedisToolBase{
-			client: client,
+			client:           client,
+			MarshalInterface: defaultMarshal,
+			selfKey:          key,
+			sep:              "",
 		},
 	}
 	return
@@ -57,7 +59,7 @@ func (m *RedisDelayQueue[T]) ToKey(key string) string {
 
 func (m *RedisDelayQueue[T]) Add(ctx context.Context, key string, valueIf T, delayDur int64, expireDur int64) (err error) {
 	curTimeMs := time.Now().UnixMilli()
-	value, err := jsoniter.MarshalToString(valueIf)
+	value, err := m.marshalFunction(valueIf)
 	if expireDur < delayDur {
 		expireDur = delayDur + 1
 	}
@@ -92,7 +94,7 @@ func (m *RedisDelayQueue[T]) Count(ctx context.Context, timeMsStart, timeMsEnd i
 	return
 }
 
-func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd int64) (resList []*T, err error) {
+func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd int64) (resList []T, err error) {
 	queueKeyList, err := m.client.ZRangeByScore(ctx, m.QueueName(), &redis.ZRangeBy{
 		Min:    fmt.Sprintf("%d", timeMsStart),
 		Max:    fmt.Sprintf("%d", timeMsEnd),
@@ -105,10 +107,10 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 	if len(queueKeyList) == 0 {
 		return nil, nil
 	}
-	resList = []*T{}
+	resList = []T{}
 	var invalidKeys []interface{}
 	for _, key := range queueKeyList {
-		value, err1 := m.client.Get(ctx, key).Result()
+		valueStr, err1 := m.client.Get(ctx, key).Result()
 		if err1 != nil {
 			if err1 == redis.Nil {
 				xlog.Debugf("invalid key add %v", key)
@@ -124,15 +126,27 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 		}
 		var t T
 		v := reflect.New(reflect.TypeOf(t))
-		t2, ok := v.Interface().(*T)
-		if !ok {
-			xlog.Error("failed conv")
+		if reflect.TypeOf(t).Kind() == reflect.Uintptr || reflect.TypeOf(t).Kind() == reflect.Pointer {
+			ptr, ok := v.Interface().(T)
+			if !ok {
+				xlog.Error("failed conv ptr")
+			}
+			err = m.unmarshalFunction(valueStr, ptr)
+			if err != nil {
+				xlog.Error(err)
+			}
+			resList = append(resList, ptr)
+		} else {
+			val, ok := v.Interface().(*T)
+			if !ok {
+				xlog.Error("failed conv base type")
+			}
+			err = m.unmarshalFunction(valueStr, val)
+			if err != nil {
+				xlog.Error(err)
+			}
+			resList = append(resList, *val)
 		}
-		err = m.RedisToolBase.unmarshalFunction(value, t2)
-		if err != nil {
-			xlog.Error(err)
-		}
-		resList = append(resList, t2)
 		invalidKeys = append(invalidKeys, key)
 	}
 	xlog.Debugf("res_list=%v", len(resList))
