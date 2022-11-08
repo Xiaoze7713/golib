@@ -3,7 +3,6 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/type_def"
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
@@ -12,7 +11,7 @@ import (
 	"time"
 )
 
-type RedisDelayQueue[T type_def.BaseValueType | type_def.PtrValueType] struct {
+type RedisDelayQueue[T any] struct {
 	RedisToolBase
 	limit int64
 }
@@ -31,7 +30,7 @@ func (m *RedisDelayQueue[T]) Init(key string) error {
 //	return m.config
 //}
 
-func NewDelayQueue[T type_def.BaseValueType | type_def.PtrValueType](key, sep string, client redis.Cmdable) (dQueue *RedisDelayQueue[T], err error) {
+func NewDelayQueue[T any](key, sep string, client redis.Cmdable) (dQueue *RedisDelayQueue[T], err error) {
 	dQueue = &RedisDelayQueue[T]{
 		RedisToolBase: RedisToolBase{
 			client:           client,
@@ -125,8 +124,8 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 			continue
 		}
 		var t T
-		v := reflect.New(reflect.TypeOf(t))
 		if reflect.TypeOf(t).Kind() == reflect.Uintptr || reflect.TypeOf(t).Kind() == reflect.Pointer {
+			v := reflect.New(reflect.TypeOf(t).Elem())
 			ptr, ok := v.Interface().(T)
 			if !ok {
 				xlog.Error("failed conv ptr")
@@ -137,6 +136,7 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 			}
 			resList = append(resList, ptr)
 		} else {
+			v := reflect.New(reflect.TypeOf(t))
 			val, ok := v.Interface().(*T)
 			if !ok {
 				xlog.Error("failed conv base type")
