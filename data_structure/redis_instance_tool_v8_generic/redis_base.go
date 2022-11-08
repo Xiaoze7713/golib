@@ -9,7 +9,7 @@ import (
 type RedisToolBase struct {
 	client redis.Cmdable
 	MarshalInterface
-	config  *message_queue.MQConfig
+	//config  *message_queue.MQConfig
 	selfKey string
 	sep     string
 }
@@ -26,7 +26,7 @@ type ToolOption interface {
 }
 
 func (m *RedisToolBase) Init(conf *message_queue.MQConfig) {
-	m.config = conf
+	//m.config = conf
 	if m.MarshalInterface == nil {
 		json := MarshalJson{}
 		json.Apply(m)

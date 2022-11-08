@@ -22,7 +22,6 @@ func (m *MQConfig) String() string {
 }
 
 type MQInstance interface {
-	Init(*MQConfig) error
 	Push(ctx context.Context, data interface{}) error
 	Pop(ctx context.Context, block bool) (interface{}, error)
 	Name() string

@@ -9,7 +9,6 @@ import (
 )
 
 type DMQInstance interface {
-	Init(*MQConfig) error
 	Add(ctx context.Context, key string, valueIf interface{}, delayDur int64, expireDur int64) (err error)
 	Count(ctx context.Context, timeMsStart, timeMsEnd int64) (count int, err error)
 	PopL(ctx context.Context, timeMsStart, timeMsEnd int64) (resList []string, err error)

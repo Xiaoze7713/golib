@@ -3,7 +3,6 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/data_structure/message_queue"
 	"git.singularity-ai.com/backend/library/type_def"
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
@@ -19,19 +18,19 @@ type RedisDelayQueue[T type_def.BaseValueType | type_def.PtrValueType] struct {
 	limit int64
 }
 
-func (m *RedisDelayQueue[T]) Init(msConfig *message_queue.MQConfig) error {
-	m.selfKey = msConfig.Topic
+func (m *RedisDelayQueue[T]) Init(key string) error {
+	m.selfKey = key
 	m.limit = 100
-	m.config = msConfig
+	//m.config = msConfig
 	if m.MarshalInterface == nil {
 		defaultMarshal.Apply(&m.RedisToolBase)
 	}
 	return nil
 }
 
-func (m *RedisDelayQueue[T]) Config() *message_queue.MQConfig {
-	return m.config
-}
+//func (m *RedisDelayQueue[T]) Config() *message_queue.MQConfig {
+//	return m.config
+//}
 
 func NewDelayQueue[T type_def.BaseValueType](client redis.Cmdable) (dQueue *RedisDelayQueue[T], err error) {
 	dQueue = &RedisDelayQueue[T]{
