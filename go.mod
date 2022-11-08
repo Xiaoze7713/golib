@@ -23,6 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.5.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
+	github.com/ylywyn/jpush-api-go-client v0.0.0-20190906031852-8c4466c6e369
 	github.com/zouyx/agollo/v4 v4.0.8
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.5

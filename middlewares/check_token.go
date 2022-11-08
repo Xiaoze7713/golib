@@ -31,7 +31,7 @@ func CheckToken() web.WebHandlerFunc {
 	return func(ctx *web.WebContext) {
 		// 前置校验
 		t := ctx.GetHeader("Token")
-		if t == "" {
+		if t == "" || t == "null" {
 			return
 		}
 		data, err := token.VerifyToken(ctx, t)
