@@ -103,6 +103,33 @@ func TestDQ(t *testing.T) {
 	time.Sleep(time.Second * 5)
 }
 
+func TestNewKeyPool(t *testing.T) {
+	xlog.SetupLogDefault()
+	cli := redis.NewClient(&redis.Options{
+		Addr:     "39.99.233.6:6379",
+		Password: "redis",
+		DB:       0,
+	})
+	pool, err := NewKeyPool[string, *XX]("dq_test", "_", cli, false, 10)
+	ctx := context.Background()
+	user := "user"
+	err = pool.Set(ctx, user, &XX{
+		A: "xa",
+		B: "xb",
+	})
+	if err != nil {
+		xlog.Errorf("%v", err)
+	}
+	time.Sleep(time.Second * 7)
+	res, err := pool.GetAndUnmarshal(ctx, user)
+	if err != nil {
+		xlog.Errorf("%v", err)
+	}
+	xlog.Infof("data %v", utils.MustJson(res))
+
+	time.Sleep(time.Second * 5)
+}
+
 func TestGeneric(t *testing.T) {
 	var tt int = 10
 	v := reflect.New(reflect.TypeOf(tt))

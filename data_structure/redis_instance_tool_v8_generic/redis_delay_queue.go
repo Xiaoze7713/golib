@@ -6,7 +6,6 @@ import (
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
-	"reflect"
 	"strconv"
 	"time"
 )
@@ -123,30 +122,12 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 			xlog.Errorf("%v", err1)
 			continue
 		}
-		var t T
-		if reflect.TypeOf(t).Kind() == reflect.Uintptr || reflect.TypeOf(t).Kind() == reflect.Pointer {
-			v := reflect.New(reflect.TypeOf(t).Elem())
-			ptr, ok := v.Interface().(T)
-			if !ok {
-				xlog.Error("failed conv ptr")
-			}
-			err = m.unmarshalFunction(valueStr, ptr)
-			if err != nil {
-				xlog.Error(err)
-			}
-			resList = append(resList, ptr)
-		} else {
-			v := reflect.New(reflect.TypeOf(t))
-			val, ok := v.Interface().(*T)
-			if !ok {
-				xlog.Error("failed conv base type")
-			}
-			err = m.unmarshalFunction(valueStr, val)
-			if err != nil {
-				xlog.Error(err)
-			}
-			resList = append(resList, *val)
+		res, err1 := Conv[T](valueStr, m.unmarshalFunction)
+		if err1 != nil {
+			xlog.Error(err1)
+			continue
 		}
+		resList = append(resList, res)
 		invalidKeys = append(invalidKeys, key)
 	}
 	xlog.Debugf("res_list=%v", len(resList))

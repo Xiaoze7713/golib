@@ -22,8 +22,8 @@ func (m *MQConfig) String() string {
 }
 
 type MQInstance[T any] interface {
-	Push(ctx context.Context, data *T) error
-	Pop(ctx context.Context, block bool) (*T, error)
+	Push(ctx context.Context, data T) error
+	Pop(ctx context.Context, block bool) (T, error)
 	Name() string
 	Config() *MQConfig
 }
@@ -40,8 +40,8 @@ type MQManager[T any] struct {
 	producerCtx     context.Context
 	producerCancel  context.CancelFunc
 	ctx             context.Context
-	msgIn           chan *T
-	msgOut          chan *T
+	msgIn           chan T
+	msgOut          chan T
 }
 
 func NewMQManager[T any](instance MQInstance[T], handler MQMsgHandlerFunc) (mqMgr *MQManager[T], err error) {
@@ -49,8 +49,8 @@ func NewMQManager[T any](instance MQInstance[T], handler MQMsgHandlerFunc) (mqMg
 		instance:        instance,
 		handlerFunction: handler,
 		ctx:             context.Background(),
-		msgIn:           make(chan *T, 1000),
-		msgOut:          make(chan *T, 10),
+		msgIn:           make(chan T, 1000),
+		msgOut:          make(chan T, 10),
 	}
 	mqMgr.consumerCtx, mqMgr.consumerCancel = context.WithCancel(mqMgr.ctx)
 	mqMgr.producerCtx, mqMgr.producerCancel = context.WithCancel(mqMgr.ctx)
@@ -105,7 +105,7 @@ func (m *MQManager[T]) LoopProducer() {
 	}
 }
 
-func (m *MQManager[T]) Send(msg *T) error {
+func (m *MQManager[T]) Send(msg T) error {
 	m.msgOut <- msg
 	return nil
 }

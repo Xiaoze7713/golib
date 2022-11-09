@@ -5,7 +5,6 @@ import (
 	"errors"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
-	"reflect"
 )
 
 type RedisQueue[T any] struct {
@@ -47,22 +46,22 @@ func (m *RedisQueue[T]) QueueName() string {
 	return m.selfKey
 }
 
-func (m *RedisQueue[T]) Push(ctx context.Context, valuePtr *T) (err error) {
+func (m *RedisQueue[T]) Push(ctx context.Context, valuePtr T) (err error) {
 	value, err := m.marshalFunction(valuePtr)
 	_, err = m.client.RPush(ctx, m.QueueName(), value).Result()
 	//xlog.Debugf("push queue %v,  count %v  value %v", m.QueueName(), r, value)
 	return
 }
 
-func (m *RedisQueue[T]) Pop(ctx context.Context, block bool) (*T, error) {
+func (m *RedisQueue[T]) Pop(ctx context.Context, block bool) (T, error) {
 	t, err := m.pop(ctx, block)
 	if err != nil {
-		return nil, err
+		return t, err
 	}
 	return t, nil
 }
 
-func (m *RedisQueue[T]) pop(ctx context.Context, block bool) (t2 *T, err error) {
+func (m *RedisQueue[T]) pop(ctx context.Context, block bool) (res T, err error) {
 	resList := []string{}
 	if block {
 		resList, err = m.client.BLPop(ctx, 0, m.QueueName()).Result()
@@ -71,21 +70,16 @@ func (m *RedisQueue[T]) pop(ctx context.Context, block bool) (t2 *T, err error) 
 		res, err = m.client.LPop(ctx, m.QueueName()).Result()
 		resList = append(resList, m.QueueName(), res)
 	}
+	var t T
 	if err != nil {
-		return nil, err
+		return t, err
 	}
 	if len(resList) == 2 {
-		var t T
-		v := reflect.New(reflect.TypeOf(t))
-		t2, ok := v.Interface().(*T)
-		if !ok {
-			xlog.Error("failed conv")
-		}
-		err = m.RedisToolBase.unmarshalFunction(resList[1], t2)
+		res, err := Conv[T](resList[1], m.unmarshalFunction)
 		if err != nil {
 			xlog.Error(err)
 		}
-		return t2, nil
+		return res, nil
 	}
-	return nil, nil
+	return t, nil
 }

@@ -7,7 +7,6 @@ import (
 	"git.singularity-ai.com/backend/library/type_def"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
-	"reflect"
 	"time"
 )
 
@@ -78,20 +77,16 @@ func (m *KeyPool[K, V]) Del(ctx context.Context, key K) (err error) {
 	return
 }
 
-func (m *KeyPool[K, V]) GetAndUnmarshal(ctx context.Context, key K) (value *V, err error) {
-	resBytes, err := m.client.Get(ctx, m.SelfKey(key)).Result()
+func (m *KeyPool[K, V]) GetAndUnmarshal(ctx context.Context, key K) (value V, err error) {
+	resStr, err := m.client.Get(ctx, m.SelfKey(key)).Result()
+	var v V
 	if err != nil {
-		return nil, err
+		return v, err
 	}
-	var tp V
-	v := reflect.New(reflect.TypeOf(tp))
-	value, ok := v.Interface().(*V)
-	if !ok {
-		xlog.Error("failed conv")
-	}
-	err = m.MarshalInterface.unmarshalFunction(resBytes, value)
-	if err != nil {
-		return nil, err
+	value, err1 := Conv[V](resStr, m.unmarshalFunction)
+	if err1 != nil {
+		xlog.Error(err1)
+		return v, err1
 	}
 	return value, nil
 }
