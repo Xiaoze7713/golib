@@ -1,12 +1,14 @@
 package redis_instance_tool
 
 import (
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"git.singularity-ai.com/backend/library/xContext"
+	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
+	"math/rand"
 	"time"
 )
 
@@ -46,20 +48,39 @@ func (m *DLock) SelfKey(key string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(key+m.saltString)))
 }
 
-func (m *DLock) Lock(ctx *xContext.XContext, key string) (err error) {
-	v := fmt.Sprintf("%d", time.Now().UnixMilli())
-	_, err = m.client.Set(ctx, m.SelfKey(key), v, time.Duration(m.expire)*time.Second).Result()
+func (m *DLock) Lock(ctx context.Context, key string) (dlKey string, err error) {
+	dlKey, err = utils.StringsMd5([]string{time.Now().String(), fmt.Sprintf("%f", rand.Float64())})
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	res, err := m.client.SetNX(ctx, m.SelfKey(key), dlKey, time.Duration(m.expire)*time.Second).Result()
+	if err != nil {
+		return "", err
+	}
+	if res {
+		return dlKey, nil
+	} else {
+		return "", nil
+	}
 }
 
-func (m *DLock) UnLock(ctx *xContext.XContext, key string) (err error) {
+func (m *DLock) UnLock(ctx context.Context, key string, dlKey string) (success bool, err error) {
 	//v := fmt.Sprintf("%d", time.Now().UnixMilli())
-	_, err = m.client.Del(ctx, m.SelfKey(key)).Result()
+	s := `local key = KEYS[1]
+local val = redis.call("GET", key);
+if val == ARGV[1]
+then
+	redis.call('DEL', KEYS[1])
+	return 1
+else
+	return 0
+end`
+	res, err := m.client.Eval(ctx, s, []string{key}, dlKey).Result()
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	if res == "1" {
+		return success, nil
+	}
+	return false, nil
 }
