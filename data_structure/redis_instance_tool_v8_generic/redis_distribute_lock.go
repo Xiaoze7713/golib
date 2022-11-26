@@ -66,8 +66,7 @@ func (m *DLock) Lock(ctx context.Context, key string) (dlKey string, err error) 
 
 func (m *DLock) UnLock(ctx context.Context, key string, dlKey string) (success bool, err error) {
 	//v := fmt.Sprintf("%d", time.Now().UnixMilli())
-	s := `local key = KEYS[1]
-local val = redis.call("GET", key);
+	s := `local val = redis.call("GET",KEYS[1]);
 if val == ARGV[1]
 then
 	redis.call('DEL', KEYS[1])
