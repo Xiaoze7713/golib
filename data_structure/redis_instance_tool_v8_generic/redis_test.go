@@ -137,3 +137,46 @@ func TestGeneric(t *testing.T) {
 	*(v.Interface().(*int)) = 10
 	println(*(v.Interface().(*int)))
 }
+
+func TestDLock_Lock(t *testing.T) {
+	xlog.SetupLogDefault()
+	cli := redis.NewClient(&redis.Options{
+		Addr:     "39.99.233.6:6379",
+		Password: "redis",
+		DB:       0,
+	})
+	pool, err := NewLock("test", "-", "sai", 30, cli)
+	ctx := context.Background()
+	user := "user"
+	dlKey, err := pool.Lock(ctx, user)
+	if err != nil {
+		xlog.Errorf("%v", err)
+		return
+	} else {
+		xlog.Infof("lock success %v", dlKey)
+	}
+	defer func(pool *DLock, ctx context.Context, key string, dlKey string) {
+		xlog.Infof("unlock success %v", dlKey)
+		_, err := pool.UnLock(ctx, key, dlKey)
+		if err != nil {
+			xlog.Error(err)
+		}
+	}(pool, ctx, user, dlKey)
+	time.Sleep(time.Second * 7)
+	newDlKey, err := pool.Lock(ctx, user)
+	if err != nil {
+		xlog.Errorf("%v", err)
+	}
+
+	success, err := pool.UnLock(ctx, user, "123")
+	xlog.Infof("try unlock %v", success)
+
+	if newDlKey != "" {
+		xlog.Infof("lock success %v", newDlKey)
+	} else {
+		xlog.Infof("lock failed %v", newDlKey)
+	}
+	xlog.Infof("data %v", utils.MustJson(newDlKey))
+
+	time.Sleep(time.Second * 5)
+}

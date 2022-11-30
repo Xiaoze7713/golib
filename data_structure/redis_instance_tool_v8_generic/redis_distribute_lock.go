@@ -78,7 +78,11 @@ end`
 	if err != nil {
 		return false, err
 	}
-	if res == "1" {
+	resStr, ok := res.(string)
+	if !ok {
+		return false, errors.New("eval lua script result err")
+	}
+	if resStr == "1" {
 		return success, nil
 	}
 	return false, nil
