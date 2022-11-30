@@ -9,7 +9,6 @@ import (
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"math/rand"
-	"reflect"
 	"time"
 )
 
@@ -79,7 +78,6 @@ end`
 	if err != nil {
 		return false, err
 	}
-	println(fmt.Sprintf("%v %v", res, reflect.TypeOf(res)))
 	resStr, ok := res.(int64)
 	if !ok {
 		return false, errors.New("eval lua script result err")
