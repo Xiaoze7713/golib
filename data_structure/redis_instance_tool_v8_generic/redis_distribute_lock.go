@@ -69,12 +69,11 @@ func (m *DLock) UnLock(ctx context.Context, key string, dlKey string) (success b
 	s := `local val = redis.call("GET",KEYS[1]);
 if val == ARGV[1]
 then
-	redis.call('DEL', KEYS[1])
-	return 1
+	return redis.call('DEL', KEYS[1])
 else
 	return 0
 end`
-	res, err := m.client.Eval(ctx, s, []string{key}, dlKey).Result()
+	res, err := m.client.Eval(ctx, s, []string{m.SelfKey(key)}, dlKey).Result()
 	if err != nil {
 		return false, err
 	}

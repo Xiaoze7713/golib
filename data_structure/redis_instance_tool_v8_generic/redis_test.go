@@ -6,6 +6,7 @@ import (
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -145,38 +146,52 @@ func TestDLock_Lock(t *testing.T) {
 		Password: "redis",
 		DB:       0,
 	})
-	pool, err := NewLock("test", "-", "sai", 30, cli)
-	ctx := context.Background()
-	user := "user"
-	dlKey, err := pool.Lock(ctx, user)
-	if err != nil {
-		xlog.Errorf("%v", err)
-		return
-	} else {
-		xlog.Infof("lock success %v", dlKey)
-	}
-	defer func(pool *DLock, ctx context.Context, key string, dlKey string) {
-		xlog.Infof("unlock success %v", dlKey)
-		_, err := pool.UnLock(ctx, key, dlKey)
-		if err != nil {
-			xlog.Error(err)
-		}
-	}(pool, ctx, user, dlKey)
-	time.Sleep(time.Second * 7)
-	newDlKey, err := pool.Lock(ctx, user)
-	if err != nil {
-		xlog.Errorf("%v", err)
-	}
+	for i := 0; i < 100; i++ {
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			pool, err := NewLock("test", "-", "sai", 3, cli)
+			ctx := context.Background()
+			key01 := "key_01"
+			dlKey, err := pool.Lock(ctx, key01)
+			if err != nil {
+				xlog.Errorf("%v", err)
+				return
+			} else if dlKey != "" {
+				xlog.Infof("lock success %v", dlKey)
+			} else {
+				xlog.Infof("lock failed %v", dlKey)
+				return
+			}
+			defer func(pool *DLock, ctx context.Context, key string, dlKey string) {
+				xlog.Infof("unlock success %v", dlKey)
+				_, err := pool.UnLock(ctx, key, dlKey)
+				if err != nil {
+					xlog.Error(err)
+				}
+			}(pool, ctx, key01, dlKey)
+			time.Sleep(time.Millisecond * 10)
+			newDlKey, err := pool.Lock(ctx, key01)
+			if err != nil {
+				xlog.Errorf("%v", err)
+			}
+			success, err := pool.UnLock(ctx, key01, "123")
+			if err != nil {
+				xlog.Error(err)
+				return
+			}
+			xlog.Infof("try unlock %v", success)
+			if newDlKey != "" {
+				xlog.Infof("lock success %v", newDlKey)
+			} else {
+				xlog.Infof("lock failed %v", newDlKey)
+			}
+			xlog.Infof("data %v", utils.MustJson(newDlKey))
 
-	success, err := pool.UnLock(ctx, user, "123")
-	xlog.Infof("try unlock %v", success)
-
-	if newDlKey != "" {
-		xlog.Infof("lock success %v", newDlKey)
-	} else {
-		xlog.Infof("lock failed %v", newDlKey)
+		}()
+		wg.Wait()
 	}
-	xlog.Infof("data %v", utils.MustJson(newDlKey))
 
 	time.Sleep(time.Second * 5)
 }
