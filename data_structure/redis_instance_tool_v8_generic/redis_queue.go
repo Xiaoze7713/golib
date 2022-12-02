@@ -53,6 +53,11 @@ func (m *RedisQueue[T]) Push(ctx context.Context, valuePtr T) (err error) {
 	return
 }
 
+func (m *RedisQueue[T]) Len(ctx context.Context) (length int64, err error) {
+	length, err = m.client.LLen(ctx, m.QueueName()).Result()
+	return
+}
+
 func (m *RedisQueue[T]) Pop(ctx context.Context, block bool) (T, error) {
 	t, err := m.pop(ctx, block)
 	if err != nil {
