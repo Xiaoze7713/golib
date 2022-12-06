@@ -82,7 +82,7 @@ end`
 		return false, errors.New("eval lua script result err")
 	}
 	if resStr == 1 {
-		return success, nil
+		return true, nil
 	}
 	return false, nil
 }

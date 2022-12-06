@@ -2,6 +2,7 @@ package redis_instance_tool
 
 import (
 	"context"
+	"fmt"
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
@@ -194,4 +195,49 @@ func TestDLock_Lock(t *testing.T) {
 	}
 
 	time.Sleep(time.Second * 5)
+}
+
+func TestNewQueue(t *testing.T) {
+	xlog.SetupLogDefault()
+	cli := redis.NewClient(&redis.Options{
+		Addr:     "39.99.233.6:6379",
+		Password: "redis",
+		DB:       0,
+	})
+	q, err := NewQueue[string]("test", cli)
+	if err != nil {
+		xlog.Error(err)
+		t.Fail()
+	}
+	wg := &sync.WaitGroup{}
+	ctx := context.Background()
+	wg.Add(1)
+	go func() {
+		for i := 0; i < 100; i++ {
+			val := fmt.Sprintf("%06d", i)
+			err = q.Push(ctx, val)
+			if err != nil {
+				xlog.Error(err)
+				continue
+			}
+			qLen, err := q.Len(ctx)
+			if err != nil {
+				xlog.Error(err)
+				continue
+			}
+			xlog.Info(qLen)
+		}
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		for {
+			s, err := q.Pop(ctx, true)
+			if err != nil {
+				xlog.Error(err)
+			}
+			xlog.Info(s)
+		}
+	}()
+	wg.Wait()
 }
