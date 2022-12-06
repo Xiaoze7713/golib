@@ -152,44 +152,32 @@ func TestDLock_Lock(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			pool, err := NewLock("test", "-", "sai", 3, cli)
+			pool, err := NewLock("test", "-", "sai", 3, time.Millisecond*1500, cli)
 			ctx := context.Background()
 			key01 := "key_01"
-			dlKey, err := pool.Lock(ctx, key01)
+			ulk, err := pool.NewLock(ctx, key01)
 			if err != nil {
 				xlog.Errorf("%v", err)
 				return
-			} else if dlKey != "" {
-				xlog.Infof("lock success %v", dlKey)
+			} else if ulk != nil {
+				xlog.Infof("lock success")
 			} else {
-				xlog.Infof("lock failed %v", dlKey)
+				xlog.Infof("lock failed")
 				return
 			}
-			defer func(pool *DLock, ctx context.Context, key string, dlKey string) {
-				xlog.Infof("unlock success %v", dlKey)
-				_, err := pool.UnLock(ctx, key, dlKey)
-				if err != nil {
-					xlog.Error(err)
-				}
-			}(pool, ctx, key01, dlKey)
 			time.Sleep(time.Millisecond * 10)
-			newDlKey, err := pool.Lock(ctx, key01)
-			if err != nil {
-				xlog.Errorf("%v", err)
-			}
-			success, err := pool.UnLock(ctx, key01, "123")
+			success, err := pool.unLock(ctx, key01, "123")
 			if err != nil {
 				xlog.Error(err)
 				return
 			}
 			xlog.Infof("try unlock %v", success)
-			if newDlKey != "" {
-				xlog.Infof("lock success %v", newDlKey)
-			} else {
-				xlog.Infof("lock failed %v", newDlKey)
+			success, err = ulk.Unlock()
+			if err != nil {
+				xlog.Error(err)
+				return
 			}
-			xlog.Infof("data %v", utils.MustJson(newDlKey))
-
+			xlog.Infof("try unlock 2 %v", success)
 		}()
 		wg.Wait()
 	}

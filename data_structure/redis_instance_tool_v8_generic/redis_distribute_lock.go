@@ -12,16 +12,32 @@ import (
 	"time"
 )
 
+type UnlockHdl struct {
+	dLock *DLock
+	dKey  string
+	key   string
+	ctx   context.Context
+}
+
+func (m *UnlockHdl) Unlock() (success bool, err error) {
+	success, err = m.dLock.unLock(m.ctx, m.key, m.dKey)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 type DLock struct {
 	RedisToolBase
 	//RedisCli *redis.Client
 	//selfKey  string
 	//sep      string
-	expire     int // second
-	saltString string
+	expireSecond int // second
+	saltString   string
+	maxInterval  time.Duration
 }
 
-func NewLock(key, sep, saltString string, expire int, client redis.Cmdable) (lock *DLock, err error) {
+func NewLock(key, sep, saltString string, expire int, interval time.Duration, client redis.Cmdable) (lock *DLock, err error) {
 	if key == "" {
 		xlog.Warn("counter null business key")
 		//err = errors.New("null business key")
@@ -37,6 +53,7 @@ func NewLock(key, sep, saltString string, expire int, client redis.Cmdable) (loc
 		},
 		expire,
 		saltString,
+		interval,
 	}
 	if lock.MarshalInterface == nil {
 		defaultMarshal.Apply(&lock.RedisToolBase)
@@ -48,12 +65,38 @@ func (m *DLock) SelfKey(key string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(key+m.saltString)))
 }
 
-func (m *DLock) Lock(ctx context.Context, key string) (dlKey string, err error) {
+func (m *DLock) NewLock(ctx context.Context, key string) (ulk *UnlockHdl, err error) {
+	lKey := key
+	step := time.Millisecond * 25
+	dKey := ""
+	for i := time.Duration(0); i < m.maxInterval; i += step {
+		dKey, err = m.lock(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		if dKey != "" {
+			break
+		}
+		time.Sleep(step)
+	}
+	if dKey == "" {
+		return nil, errors.New("lock busy")
+	}
+	ulk = &UnlockHdl{
+		dLock: m,
+		dKey:  dKey,
+		key:   lKey,
+		ctx:   ctx,
+	}
+	return ulk, nil
+}
+
+func (m *DLock) lock(ctx context.Context, key string) (dlKey string, err error) {
 	dlKey, err = utils.StringsMd5([]string{time.Now().String(), fmt.Sprintf("%f", rand.Float64())})
 	if err != nil {
 		return "", err
 	}
-	res, err := m.client.SetNX(ctx, m.SelfKey(key), dlKey, time.Duration(m.expire)*time.Second).Result()
+	res, err := m.client.SetNX(ctx, m.SelfKey(key), dlKey, time.Duration(m.expireSecond)*time.Second).Result()
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +107,7 @@ func (m *DLock) Lock(ctx context.Context, key string) (dlKey string, err error) 
 	}
 }
 
-func (m *DLock) UnLock(ctx context.Context, key string, dlKey string) (success bool, err error) {
+func (m *DLock) unLock(ctx context.Context, key string, dlKey string) (success bool, err error) {
 	//v := fmt.Sprintf("%d", time.Now().UnixMilli())
 	s := `local val = redis.call("GET",KEYS[1]);
 if val == ARGV[1]
