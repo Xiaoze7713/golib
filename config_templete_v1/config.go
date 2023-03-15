@@ -51,7 +51,13 @@ type Neo4jConfig struct {
 }
 
 type RedisConfig struct {
-	Host     string `toml:"host"`
-	Password string `toml:"password"`
-	DBNumber int64  `toml:"db_no"`
+	Host       string   `toml:"host"`
+	Password   string   `toml:"password"`
+	DBNumber   int64    `toml:"db_no"`
+	Mode       string   `toml:"mode"`
+	MultiHosts []string `toml:"multi_hosts"`
+}
+
+func (m *RedisConfig) IsCluster() bool {
+	return m.Mode == "cluster"
 }
