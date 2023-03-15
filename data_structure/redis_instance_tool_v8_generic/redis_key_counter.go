@@ -37,7 +37,7 @@ func NewCounter(key, sep string, client redis.Cmdable) (counter *Counter, err er
 }
 
 func (kp *Counter) SelfKey(s string) (key string) {
-	return kp.selfKey + kp.sep + s
+	return kp.Prefix() + s
 }
 
 func (kp *Counter) SelfSep() (sep string) {

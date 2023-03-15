@@ -39,7 +39,7 @@ func NewKeyPool[K type_def.BaseValueType, V any](businessKey, sep string, client
 }
 
 func (m *KeyPool[K, V]) SelfKey(s K) (key string) {
-	return m.selfKey + m.sep + fmt.Sprintf("%v", s)
+	return m.Prefix() + fmt.Sprintf("%v", s)
 }
 
 func (m *KeyPool[K, V]) SelfSep() (sep string) {
@@ -62,6 +62,28 @@ func (m *KeyPool[K, V]) Set(ctx context.Context, key K, valueIF V) (err error) {
 		_, err = m.client.Set(ctx, m.SelfKey(key), value, ex).Result()
 	}
 	return
+}
+
+func (m *KeyPool[K, V]) Keys(ctx context.Context) (resList []string, err error) {
+	if m.Prefix() == "" {
+		return nil, WarnKeysCountUse
+	}
+	resList, err = m.client.Keys(ctx, m.Prefix()).Result()
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+func (m *KeyPool[K, V]) Count(ctx context.Context) (count int, err error) {
+	if m.Prefix() == "" {
+		return -1, WarnKeysCountUse
+	}
+	resList, err := m.client.Keys(ctx, m.Prefix()).Result()
+	if err != nil {
+		return 0, err
+	}
+	return len(resList), nil
 }
 
 func (m *KeyPool[K, V]) Get(ctx context.Context, key K) (resStr string, err error) {

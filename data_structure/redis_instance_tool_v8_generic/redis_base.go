@@ -1,8 +1,13 @@
 package redis_instance_tool
 
 import (
+	"errors"
 	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	WarnKeysCountUse = errors.New("warn empty key, can`t use keys")
 )
 
 type RedisToolBase struct {
@@ -33,9 +38,12 @@ func (m *RedisToolBase) Init() {
 }
 
 func (m *RedisToolBase) SelfKey(s string) (key string) {
-	return m.selfKey + m.sep + s
+	return m.Prefix() + s
 }
 
+func (m *RedisToolBase) Prefix() string {
+	return m.selfKey + m.sep
+}
 func (m *RedisToolBase) SelfSep() (sep string) {
 	return m.sep
 }

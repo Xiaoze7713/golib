@@ -34,7 +34,7 @@ func NewTable(businessKey, sep string, client redis.Cmdable) (table *Table, err 
 }
 
 func (m *Table) SelfKey(s string) (key string) {
-	return m.selfKey + m.sep + s
+	return m.Prefix() + s
 }
 
 func (m *Table) SelfSep() (sep string) {
