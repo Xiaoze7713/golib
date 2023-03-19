@@ -56,10 +56,15 @@ func (m *KeyPool[K, V]) Set(ctx context.Context, key K, valueIF V) (err error) {
 	if m.expire != 0 {
 		ex = time.Second * time.Duration(m.expire)
 	}
+	var res bool
 	if m.nx {
-		_, err = m.client.SetNX(ctx, m.SelfKey(key), value, ex).Result()
+		res, err = m.client.SetNX(ctx, m.SelfKey(key), value, ex).Result()
 	} else {
 		_, err = m.client.Set(ctx, m.SelfKey(key), value, ex).Result()
+		res = true
+	}
+	if !res {
+		return errors.New("set failed")
 	}
 	return
 }
