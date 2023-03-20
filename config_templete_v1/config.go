@@ -56,6 +56,7 @@ type RedisConfig struct {
 	DBNumber   int64    `toml:"db_no"`
 	Mode       string   `toml:"mode"`
 	MultiHosts []string `toml:"multi_hosts"`
+	UserName   string   `toml:"user_name"`
 }
 
 func (m *RedisConfig) IsCluster() bool {
