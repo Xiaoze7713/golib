@@ -186,8 +186,8 @@ func (l *Logger) deliverRecordToWriter(level int, format string, args ...interfa
 	// source code, file and line num
 	// format time
 	now := time.Now()
-	if now.Unix() != l.lastTime {
-		l.lastTime = now.Unix()
+	if now.UnixMilli() != l.lastTime {
+		l.lastTime = now.UnixMilli()
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
