@@ -39,25 +39,41 @@ func (m *GormXLog) SetTrace(trace bool) {
 
 func (m *GormXLog) Info(ctx context.Context, s string, args ...interface{}) {
 	if m.level >= logger.Info {
-		m.Ctx.Info(m.Ctx.OperationName(), s, args)
+		if xCtx, ok := ctx.(*xContext.XContext); ok {
+			xCtx.Info(s, args)
+		} else {
+			m.Ctx.Info(m.Ctx.OperationName(), s, args)
+		}
 	}
 }
 
 func (m *GormXLog) Warn(ctx context.Context, s string, args ...interface{}) {
 	if m.level >= logger.Warn {
-		m.Ctx.Info(m.Ctx.OperationName(), s, args)
+		if xCtx, ok := ctx.(*xContext.XContext); ok {
+			xCtx.Warn(s, args)
+		} else {
+			m.Ctx.Warn(m.Ctx.OperationName(), s, args)
+		}
 	}
 }
 
 func (m *GormXLog) Error(ctx context.Context, s string, args ...interface{}) {
 	if m.level >= logger.Error {
-		m.Ctx.Error(m.Ctx.OperationName(), s, args)
+		if xCtx, ok := ctx.(*xContext.XContext); ok {
+			xCtx.Error(s, args)
+		} else {
+			m.Ctx.Error(m.Ctx.OperationName(), s, args)
+		}
 	}
 }
 
 func (m *GormXLog) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	if m.level >= TraceLevel {
 		sql, rows := fc()
-		m.Ctx.Debugf("[%s][T:%s][%s]ROWS %d, RES %v", m.Ctx.OperationName(), begin.Format("2006-01-02 15:04:05.999"), sql, rows, err)
+		if xCtx, ok := ctx.(*xContext.XContext); ok {
+			xCtx.Debugf("[%s][T:%s][%s]ROWS %d, RES %v", m.Ctx.OperationName(), begin.Format("2006-01-02 15:04:05.999"), sql, rows, err)
+		} else {
+			m.Ctx.Debugf("[%s][T:%s][%s]ROWS %d, RES %v", m.Ctx.OperationName(), begin.Format("2006-01-02 15:04:05.999"), sql, rows, err)
+		}
 	}
 }
