@@ -74,7 +74,7 @@ func NewLogger() *Logger {
 	l.tunnel = make(chan *Record, tunnel_size_default)
 	l.c = make(chan bool, 1)
 	l.level = DEBUG
-	l.layout = "2006-01-02T15:04:05.000"
+	l.layout = "2006-01-02 15:04:05.999999"
 	l.skipStr = "xContextLog.go"
 
 	go boostrapLogWriter(l)
@@ -186,8 +186,8 @@ func (l *Logger) deliverRecordToWriter(level int, format string, args ...interfa
 	// source code, file and line num
 	// format time
 	now := time.Now()
-	if now.UnixMilli() != l.lastTime {
-		l.lastTime = now.UnixMilli()
+	if now.UnixNano() != l.lastTime {
+		l.lastTime = now.UnixNano()
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
@@ -226,7 +226,7 @@ func boostrapLogWriter(logger *Logger) {
 		}
 	}
 
-	flushTimer := time.NewTimer(time.Millisecond * 500)
+	flushTimer := time.NewTimer(time.Millisecond * 200)
 	rotateTimer := time.NewTimer(time.Second * 10)
 
 	for {
@@ -253,7 +253,7 @@ func boostrapLogWriter(logger *Logger) {
 					}
 				}
 			}
-			flushTimer.Reset(time.Millisecond * 1000)
+			flushTimer.Reset(time.Millisecond * 200)
 
 		case <-rotateTimer.C:
 			for _, w := range logger.writers {
