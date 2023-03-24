@@ -58,6 +58,6 @@ func (m *GormXLog) Error(ctx context.Context, s string, args ...interface{}) {
 func (m *GormXLog) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	if m.level >= TraceLevel {
 		sql, rows := fc()
-		m.Ctx.Debugf("[%s][EXEC:%s] SQL  %s, ROW %d, err %v", m.Ctx.OperationName(), begin.Format("2006-01-02 15:04:05.999999999"), sql, rows, err)
+		m.Ctx.Debugf("[%s][T:%s][%s]ROWS %d, RES %v", m.Ctx.OperationName(), begin.Format("2006-01-02 15:04:05.999"), sql, rows, err)
 	}
 }

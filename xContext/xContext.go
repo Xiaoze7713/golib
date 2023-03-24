@@ -250,9 +250,10 @@ func (x *XContext) CopyWithContext(ctx context.Context) *XContext {
 
 func NewXContextWithContextString(ctx context.Context, operationName, spanCtxString string) *XContext {
 	xCtx := &XContext{
-		Context:   ctx,
-		LoggerIF:  mLogger,
-		MetricsIF: mMetric,
+		Context:       ctx,
+		LoggerIF:      mLogger,
+		MetricsIF:     mMetric,
+		operationName: operationName,
 		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = newSpanWithString(spanCtxString, operationName)
@@ -261,9 +262,10 @@ func NewXContextWithContextString(ctx context.Context, operationName, spanCtxStr
 
 func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
 	xCtx := &XContext{
-		Context:   ctx,
-		LoggerIF:  mLogger,
-		MetricsIF: mMetric,
+		Context:       ctx,
+		LoggerIF:      mLogger,
+		MetricsIF:     mMetric,
+		operationName: operationName,
 		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = mTrace.StartSpan(operationName,
@@ -274,9 +276,10 @@ func NewXContextWithContext(ctx context.Context, operationName string) *XContext
 
 func NewXContext(operationName string) *XContext {
 	xCtx := &XContext{
-		Context:   context.Background(),
-		LoggerIF:  mLogger,
-		MetricsIF: mMetric,
+		Context:       context.Background(),
+		LoggerIF:      mLogger,
+		MetricsIF:     mMetric,
+		operationName: operationName,
 		// lock:      &sync.RWMutex{},
 	}
 	xCtx.Span = mTrace.StartSpan(operationName,
