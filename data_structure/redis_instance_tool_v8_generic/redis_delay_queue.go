@@ -3,6 +3,7 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
+	"git.singularity-ai.com/backend/library/generic_conv"
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
@@ -122,7 +123,7 @@ func (m *RedisDelayQueue[T]) PopL(ctx context.Context, timeMsStart, timeMsEnd in
 			xlog.Errorf("%v", err1)
 			continue
 		}
-		res, err1 := Conv[T](valueStr, m.unmarshalFunction)
+		res, err1 := generic_conv.Conv[T](valueStr, m.unmarshalFunction)
 		if err1 != nil {
 			xlog.Error(err1)
 			continue

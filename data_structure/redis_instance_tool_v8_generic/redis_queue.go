@@ -3,6 +3,7 @@ package redis_instance_tool
 import (
 	"context"
 	"errors"
+	"git.singularity-ai.com/backend/library/generic_conv"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 )
@@ -80,7 +81,7 @@ func (m *RedisQueue[T]) pop(ctx context.Context, block bool) (res T, err error) 
 		return t, err
 	}
 	if len(resList) == 2 {
-		res, err := Conv[T](resList[1], m.unmarshalFunction)
+		res, err := generic_conv.Conv[T](resList[1], m.unmarshalFunction)
 		if err != nil {
 			xlog.Error(err)
 		}

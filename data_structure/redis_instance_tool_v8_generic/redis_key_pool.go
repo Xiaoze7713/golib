@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.singularity-ai.com/backend/library/generic_conv"
 	"git.singularity-ai.com/backend/library/type_def"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
@@ -110,7 +111,7 @@ func (m *KeyPool[K, V]) GetAndUnmarshal(ctx context.Context, key K) (value V, er
 	if err != nil {
 		return v, err
 	}
-	value, err1 := Conv[V](resStr, m.unmarshalFunction)
+	value, err1 := generic_conv.Conv[V](resStr, m.unmarshalFunction)
 	if err1 != nil {
 		xlog.Error(err1)
 		return v, err1

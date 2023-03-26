@@ -1,4 +1,4 @@
-package redis_instance_tool
+package generic_conv
 
 import (
 	"errors"
