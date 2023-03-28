@@ -70,12 +70,17 @@ func DoRequest() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		traceID := gc.GetHeader("trace_id")
 		ctx := NewXContextWithContextString(gc, "request", traceID)
+		respBodyLen := 0
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
-			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			if respBodyLen <= 1024*20 {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			} else {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			}
 			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
@@ -96,7 +101,11 @@ func DoRequest() gin.HandlerFunc {
 		}
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
-		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		if len(body) <= 1024*20 { // 20k
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		} else {
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
+		}
 		ctx.LogFields("req", "req_in")
 		defer func() {
 			if e := recover(); e != any(nil) {
@@ -111,14 +120,16 @@ func DoRequest() gin.HandlerFunc {
 		// ctxI, _ := gc.Get("xContext")
 		// ctx = ctxI.(*XContext)
 		resp, ok := gc.Get("resp")
+		respContentJson := utils.MustJson(resp)
+		respBodyLen = len(respContentJson)
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
-			ctx.SetKV(RespBody, utils.MustJson(resp))
+			ctx.SetKV(RespBody, respContentJson)
 			gc.JSON(http.StatusOK, resp)
 		} else {
 			resp = map[string]interface{}{"code": -1, "code_msg": ""}
 			gc.JSON(http.StatusOK, resp)
-			ctx.SetKV(RespBody, utils.MustJson(resp))
+			ctx.SetKV(RespBody, respContentJson)
 		}
 	}
 }
@@ -152,7 +163,11 @@ func HttpIntercept(h http.Handler) http.Handler {
 		}
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
-		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		if len(body) <= 1024*20 { // 20k
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		} else {
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
+		}
 		ctx.LogFields("req", "req_in")
 
 		// r = r.WithContext(lc)
