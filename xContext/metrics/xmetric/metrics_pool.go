@@ -3,6 +3,7 @@ package xmetric
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"sort"
+	"sync"
 )
 
 type MetricType int
@@ -20,6 +21,7 @@ type MetricPool struct {
 	summeryVecSet   map[string]*prometheus.SummaryVec
 	counterVecSet   map[string]*prometheus.CounterVec
 	gaugeVecSet     map[string]*prometheus.GaugeVec
+	lock            *sync.RWMutex
 }
 
 func NewMetricPool(name string) *MetricPool {
@@ -29,6 +31,7 @@ func NewMetricPool(name string) *MetricPool {
 		summeryVecSet:   map[string]*prometheus.SummaryVec{},
 		counterVecSet:   map[string]*prometheus.CounterVec{},
 		gaugeVecSet:     map[string]*prometheus.GaugeVec{},
+		lock:            &sync.RWMutex{},
 	}
 }
 
@@ -48,6 +51,8 @@ func (m Labels) HashKey() string {
 }
 
 func (u *MetricPool) Counter(name string, labels prometheus.Labels) prometheus.Counter {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	counterVec, ok := u.counterVecSet[name]
 	if !ok {
 		return nil
@@ -57,6 +62,8 @@ func (u *MetricPool) Counter(name string, labels prometheus.Labels) prometheus.C
 }
 
 func (u *MetricPool) Summary(name string, labels prometheus.Labels) prometheus.Observer {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	summaryVec, ok := u.summeryVecSet[name]
 	if !ok {
 		return nil
@@ -66,6 +73,8 @@ func (u *MetricPool) Summary(name string, labels prometheus.Labels) prometheus.O
 }
 
 func (u *MetricPool) Histogram(name string, labels prometheus.Labels) prometheus.Observer {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	histogramVec, ok := u.histogramVecSet[name]
 	if !ok {
 		return nil
@@ -75,6 +84,8 @@ func (u *MetricPool) Histogram(name string, labels prometheus.Labels) prometheus
 }
 
 func (u *MetricPool) Gauge(name string, labels prometheus.Labels) prometheus.Gauge {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	gaugeVec, ok := u.gaugeVecSet[name]
 	if !ok {
 		return nil
@@ -84,6 +95,8 @@ func (u *MetricPool) Gauge(name string, labels prometheus.Labels) prometheus.Gau
 }
 
 func (u *MetricPool) NewMetrics(metricType MetricType, opts prometheus.Opts, name string, labels Labels) bool {
+	u.lock.Lock()
+	defer u.lock.Unlock()
 	switch metricType {
 	case MetricCounter:
 		u.counterVecSet[name] = prometheus.NewCounterVec(prometheus.CounterOpts{
