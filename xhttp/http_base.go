@@ -6,23 +6,17 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
-type Response struct {
-	Code     int64       `json:"code"`
-	CodeMsg  string      `json:"codeMsg"`
-	RespData interface{} `json:"resp_data"`
-}
-
-type request struct {
-	Data interface{} `json:"data"`
+type Request struct {
+	Data interface{} `json:"data,omitempty"`
 }
 
 func GinMustBind(gc *gin.Context, binding binding.Binding, data interface{}) (err error) {
-	req := &request{data}
+	req := &Request{data}
 	err = gc.ShouldBindWith(req, binding)
 	return
 }
 
-type response struct {
+type Response struct {
 	Code    int32       `json:"code"`
 	Message string      `json:"code_msg"`
 	Data    interface{} `json:"resp_data,omitempty"`
@@ -34,7 +28,7 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 		xlog.Error(err)
 		errorMsg = ErrMsg(err)
 	}
-	resp := response{
+	resp := Response{
 		Code:    ErrorCode(err),
 		Message: errorMsg,
 		Data:    data,
@@ -43,7 +37,7 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 }
 
 func SetErrorResponse(g *gin.Context, code int32, msg string) {
-	resp := response{
+	resp := Response{
 		Code:    code,
 		Message: msg,
 	}
