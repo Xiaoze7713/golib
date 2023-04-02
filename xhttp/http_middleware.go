@@ -22,3 +22,12 @@ func NoMethod(gc *gin.Context) {
 	gc.Abort()
 	gc.Next()
 }
+
+func Health(gc *gin.Context) {
+	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	// defer ctx.Fin()
+	ctx.SummaryBy("health_check", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
+	SetErrorResponse(gc, 200, "i am healthy~")
+	gc.Abort()
+	gc.Next()
+}
