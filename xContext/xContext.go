@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
+	"git.singularity-ai.com/backend/library/xContext/tracers/jaeger_trace"
 	"github.com/opentracing/opentracing-go"
 	"strings"
 	"time"
@@ -144,8 +146,26 @@ func (x *XContext) Alert(i interface{}) {
 // }
 //
 
-func InitByOpt() {
-
+func InitByNullOpt() (err error) {
+	xlog.SetupLogDefault()
+	//serverName := "x_content_test"
+	metrics := null_metric.MetricsNull{}
+	trace := xtrace_base.XTraceNoop{}
+	//trace, _, err := jaeger_trace.NewJaegerTrace(&jaeger_trace.JaegerConfig{
+	//	ServiceName:   serverName,
+	//	Param:         0,
+	//	AgentHostPort: "127.0.0.1:6832",
+	//})
+	//if err != nil {
+	//	return err
+	//}
+	Init(xlog.GetLogger(), trace, metrics,
+		jaeger_trace.TraceIDFunc,
+		jaeger_trace.SpanIDFunc,
+		jaeger_trace.DurFunc,
+		jaeger_trace.ExtractSpanFromString,
+		jaeger_trace.SerializeToString)
+	return err
 }
 
 func Init(logger xlog_base.LoggerIF,

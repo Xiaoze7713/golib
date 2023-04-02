@@ -8,7 +8,31 @@ import (
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
+	"sync"
 )
+
+var bodySkip = map[string]bool{}
+
+var lock = &sync.RWMutex{}
+
+func AddBodySkip(path string) {
+	lock.Lock()
+	defer lock.Unlock()
+	bodySkip[path] = true
+}
+
+func RemoveSkip(path string) {
+	lock.Lock()
+	defer lock.Unlock()
+	delete(bodySkip, path)
+}
+
+func BodySkip(path string) bool {
+	lock.RLock()
+	defer lock.RUnlock()
+	_, ok := bodySkip[path]
+	return ok
+}
 
 func DoWsConn() gin.HandlerFunc {
 	return func(gc *gin.Context) {
@@ -19,7 +43,11 @@ func DoWsConn() gin.HandlerFunc {
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
-			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			if BodySkip(gc.Request.URL.Path) {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			} else {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			}
 			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
@@ -40,6 +68,11 @@ func DoWsConn() gin.HandlerFunc {
 		}
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
+		if BodySkip(gc.Request.URL.Path) {
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
+		} else {
+			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+		}
 		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		ctx.LogFields("req", "req_in")
 		defer func() {
@@ -66,17 +99,17 @@ func DoWsConn() gin.HandlerFunc {
 		//}
 	}
 }
+
 func DoRequest() gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		traceID := gc.GetHeader("trace_id")
 		ctx := NewXContextWithContextString(gc, "request", traceID)
-		respBodyLen := 0
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
-			if respBodyLen <= 1024*20 {
+			if BodySkip(gc.Request.URL.Path) {
 				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
 			} else {
 				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
@@ -101,7 +134,7 @@ func DoRequest() gin.HandlerFunc {
 		}
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
-		if len(body) <= 1024*20 { // 20k
+		if BodySkip(gc.Request.URL.Path) { // 20k
 			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		} else {
 			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
@@ -121,7 +154,6 @@ func DoRequest() gin.HandlerFunc {
 		// ctx = ctxI.(*XContext)
 		resp, ok := gc.Get("resp")
 		respContentJson := utils.MustJson(resp)
-		respBodyLen = len(respContentJson)
 		if ok {
 			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
 			ctx.SetKV(RespBody, respContentJson)
@@ -143,6 +175,11 @@ func HttpIntercept(h http.Handler) http.Handler {
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
+			if BodySkip(r.URL.Path) {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+			} else {
+				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+			}
 			ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
 			// ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
 			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
@@ -163,7 +200,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 		}
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
-		if len(body) <= 1024*20 { // 20k
+		if BodySkip(r.URL.Path) { // 20k
 			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		} else {
 			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
