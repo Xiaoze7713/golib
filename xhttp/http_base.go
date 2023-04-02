@@ -17,9 +17,9 @@ func GinMustBind(gc *gin.Context, binding binding.Binding, data interface{}) (er
 }
 
 type Response struct {
-	Code    int32       `json:"code"`
-	Message string      `json:"code_msg"`
-	Data    interface{} `json:"resp_data,omitempty"`
+	Code     int32       `json:"code"`
+	Message  string      `json:"code_msg"`
+	RespData interface{} `json:"resp_data,omitempty"`
 }
 
 func SetResponse(g *gin.Context, err error, data interface{}) {
@@ -29,9 +29,9 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 		errorMsg = ErrMsg(err)
 	}
 	resp := Response{
-		Code:    ErrorCode(err),
-		Message: errorMsg,
-		Data:    data,
+		Code:     ErrorCode(err),
+		Message:  errorMsg,
+		RespData: data,
 	}
 	g.Set("resp", resp)
 }

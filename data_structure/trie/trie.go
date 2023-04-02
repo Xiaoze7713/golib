@@ -273,7 +273,7 @@ func (m *DATrie) Match3(content string) (result []*Result) {
 				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
 			})
 			res := matchResults[len(matchResults)-1]
-			//println("match", res.Str, utils.MustJson(res.Data))
+			//println("match", res.Str, utils.MustJson(res.RespData))
 			resultList = append(resultList, res)
 			i += len([]rune(res.Str))
 		} else {
@@ -299,7 +299,7 @@ func (m *DATrie) MatchIgc(content string) (result []*Result) {
 				return len([]rune(matchResults[i].Str)) < len([]rune(matchResults[j].Str))
 			})
 			res := matchResults[len(matchResults)-1]
-			//println("match", res.Str, utils.MustJson(res.Data))
+			//println("match", res.Str, utils.MustJson(res.RespData))
 			resultList = append(resultList, res)
 			i += len([]rune(res.Str))
 		} else {
