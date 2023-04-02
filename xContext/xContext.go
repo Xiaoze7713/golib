@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
-	"git.singularity-ai.com/backend/library/xContext/tracers/jaeger_trace"
 	"github.com/opentracing/opentracing-go"
 	"strings"
 	"time"
@@ -160,11 +159,7 @@ func InitByNullOpt() (err error) {
 	//	return err
 	//}
 	Init(xlog.GetLogger(), trace, metrics,
-		jaeger_trace.TraceIDFunc,
-		jaeger_trace.SpanIDFunc,
-		jaeger_trace.DurFunc,
-		jaeger_trace.ExtractSpanFromString,
-		jaeger_trace.SerializeToString)
+		nil, nil, nil, nil, nil)
 	return err
 }
 
