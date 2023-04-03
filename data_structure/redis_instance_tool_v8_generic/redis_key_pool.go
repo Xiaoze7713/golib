@@ -74,7 +74,7 @@ func (m *KeyPool[K, V]) Keys(ctx context.Context) (resList []string, err error) 
 	if m.Prefix() == "" {
 		return nil, WarnKeysCountUse
 	}
-	resList, err = m.client.Keys(ctx, m.Prefix()).Result()
+	resList, err = m.client.Keys(ctx, m.Prefix()+"*").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (m *KeyPool[K, V]) Count(ctx context.Context) (count int, err error) {
 	if m.Prefix() == "" {
 		return -1, WarnKeysCountUse
 	}
-	resList, err := m.client.Keys(ctx, m.Prefix()).Result()
+	resList, err := m.client.Keys(ctx, m.Prefix()+"*").Result()
 	if err != nil {
 		return 0, err
 	}
