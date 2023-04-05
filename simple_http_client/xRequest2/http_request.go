@@ -7,39 +7,44 @@ import (
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext"
 	"github.com/go-resty/resty/v2"
+	"net/http"
 	url2 "net/url"
 	"time"
 )
 
 type HttpBase struct {
-	Cli      *resty.Client
-	skipBody map[string]bool
+	Cli         *resty.Client
+	Url         string
+	skipReqLog  map[string]bool
+	skipRespLog map[string]bool
 }
 
-const (
-	METHOD_POST = "post"
-	METHOD_GET  = "get"
-)
-
 func (m *HttpBase) Post(ctx *xContext.XContext, url string, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
-	return m.Request(ctx, url, req, resp, METHOD_POST, headersMap...)
+	return m.Request(ctx, url, req, resp, http.MethodPost, headersMap...)
 }
 
 func (m *HttpBase) Get(ctx *xContext.XContext, url string, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
-	return m.Request(ctx, url, req, resp, METHOD_GET, headersMap...)
+	return m.Request(ctx, url, req, resp, http.MethodGet, headersMap...)
 }
 
 func (m *HttpBase) Request(ctx *xContext.XContext, url string, req interface{}, resp interface{}, httpMethod string, headersMap ...map[string]string) (err error) {
 	path := ""
+	host := ""
 	u, err := url2.Parse(url)
 	if err == nil {
 		path = u.Path
+		host = u.Host
 	}
 	ctx = xContext.NewChildXContext(ctx, path+"[REQ]")
 	defer ctx.Fin()
-	ctx.LogFields("host", url)
-	ctx.Infof("[%v] req %v", path, utils.MustJson(req))
-	ctx.LogFields(string(xContext.ReqBody), utils.MustJson(req))
+	ctx.LogFields("url", url)
+	if ok, exist := m.skipReqLog[path]; !exist || !ok {
+		ctx.Infof("[%v][%v][REQ]%v", host, path, utils.MustJson(req))
+		ctx.LogFields(string(xContext.ReqBody), utils.MustJson(req))
+	} else {
+		ctx.Infof("[%v][%v][REQ]%v", host, path, "SkipDumpBody")
+		ctx.LogFields(string(xContext.RespBody), "skip body field")
+	}
 	ctx.SetTag("trace", ctx.SerializeSpanContext())
 	//ctx.SetTag("url", m.Url)
 	httpRequest := m.Cli.R().
@@ -55,10 +60,10 @@ func (m *HttpBase) Request(ctx *xContext.XContext, url string, req interface{}, 
 	ctx.LogFields("headers", utils.MustJson(httpRequest.Header))
 	var httpResp *resty.Response
 	switch httpMethod {
-	case METHOD_POST:
+	case http.MethodPost:
 		httpResp, err = httpRequest.
 			Post(url)
-	case METHOD_GET:
+	case http.MethodGet:
 		httpResp, err = httpRequest.
 			Get(url)
 	default:
@@ -76,8 +81,13 @@ func (m *HttpBase) Request(ctx *xContext.XContext, url string, req interface{}, 
 	respBody := httpResp.Body()
 	//ctx.SetTag(string(xContext.RespBody), string(respBody))
 	//ctx.Debugf("resp %v", string(respBody))
-	ctx.Infof("[%v] resp %v", path, string(respBody))
-	ctx.LogFields(string(xContext.RespBody), string(respBody))
+	if ok, exist := m.skipRespLog[path]; !exist || !ok {
+		ctx.Infof("[%v][%v][RESP] %v", host, path, string(respBody))
+		ctx.LogFields(string(xContext.RespBody), string(respBody))
+	} else {
+		ctx.Infof("[%v][%v][RESP] %v", host, path, "SkipDumpBody")
+		ctx.LogFields(string(xContext.RespBody), "skip body field")
+	}
 	ctx.LogFields(string(xContext.HttpRespHeader), utils.MustJson(httpResp.Header()))
 	err = json.Unmarshal(respBody, resp)
 	if err != nil {
