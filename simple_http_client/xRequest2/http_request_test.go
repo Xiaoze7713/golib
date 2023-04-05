@@ -41,8 +41,8 @@ func xInit() error {
 }
 
 func TestHttpBase_Request(t *testing.T) {
+	Url := "http://39.99.233.6:7775/qa_rank/match"
 	cc := HttpBase{
-		Url: "http://39.99.233.6:7775/qa_rank/match",
 		Cli: resty.New(),
 	}
 	err := xInit()
@@ -52,6 +52,6 @@ func TestHttpBase_Request(t *testing.T) {
 	ctx := xContext.NewXContext("request_xx")
 	resp := map[string]interface{}{}
 	req := map[string]string{"hi": "hello"}
-	err = cc.Post(ctx, req, &resp)
+	err = cc.Post(ctx, Url, req, &resp)
 	fmt.Printf("%v, %s", err, utils.MustJson(resp))
 }

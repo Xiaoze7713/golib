@@ -7,13 +7,13 @@ import (
 	"git.singularity-ai.com/backend/library/utils"
 	"git.singularity-ai.com/backend/library/xContext"
 	"github.com/go-resty/resty/v2"
-	"net/url"
+	url2 "net/url"
 	"time"
 )
 
 type HttpBase struct {
-	Url string
-	Cli *resty.Client
+	Cli      *resty.Client
+	skipBody map[string]bool
 }
 
 const (
@@ -21,24 +21,24 @@ const (
 	METHOD_GET  = "get"
 )
 
-func (m *HttpBase) Post(ctx *xContext.XContext, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
-	return m.Request(ctx, req, resp, METHOD_POST, headersMap...)
+func (m *HttpBase) Post(ctx *xContext.XContext, url string, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
+	return m.Request(ctx, url, req, resp, METHOD_POST, headersMap...)
 }
 
-func (m *HttpBase) Get(ctx *xContext.XContext, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
-	return m.Request(ctx, req, resp, METHOD_GET, headersMap...)
+func (m *HttpBase) Get(ctx *xContext.XContext, url string, req interface{}, resp interface{}, headersMap ...map[string]string) (err error) {
+	return m.Request(ctx, url, req, resp, METHOD_GET, headersMap...)
 }
 
-func (m *HttpBase) Request(ctx *xContext.XContext, req interface{}, resp interface{}, httpMethod string, headersMap ...map[string]string) (err error) {
-	method := ""
-	u, err := url.Parse(m.Url)
+func (m *HttpBase) Request(ctx *xContext.XContext, url string, req interface{}, resp interface{}, httpMethod string, headersMap ...map[string]string) (err error) {
+	path := ""
+	u, err := url2.Parse(url)
 	if err == nil {
-		method = u.Path
+		path = u.Path
 	}
-	ctx = xContext.NewChildXContext(ctx, method+"[REQ]")
+	ctx = xContext.NewChildXContext(ctx, path+"[REQ]")
 	defer ctx.Fin()
-	ctx.LogFields("host", m.Url)
-	ctx.Infof("[%v] req %v", method, utils.MustJson(req))
+	ctx.LogFields("host", url)
+	ctx.Infof("[%v] req %v", path, utils.MustJson(req))
 	ctx.LogFields(string(xContext.ReqBody), utils.MustJson(req))
 	ctx.SetTag("trace", ctx.SerializeSpanContext())
 	//ctx.SetTag("url", m.Url)
@@ -57,26 +57,26 @@ func (m *HttpBase) Request(ctx *xContext.XContext, req interface{}, resp interfa
 	switch httpMethod {
 	case METHOD_POST:
 		httpResp, err = httpRequest.
-			Post(m.Url)
+			Post(url)
 	case METHOD_GET:
 		httpResp, err = httpRequest.
-			Get(m.Url)
+			Get(url)
 	default:
 		httpResp, err = httpRequest.
-			Get(m.Url)
+			Get(url)
 	}
 	if err != nil {
 		ctx.SetTag("err", err.Error())
 		return err
 	}
-	defer ctx.SetTag("http_status", httpResp.StatusCode)
+	defer ctx.SetTag("http_status", httpResp.StatusCode())
 	if httpResp.StatusCode() != 200 {
 		return errors.New(fmt.Sprintf("exception http code %v", httpResp.StatusCode()))
 	}
 	respBody := httpResp.Body()
 	//ctx.SetTag(string(xContext.RespBody), string(respBody))
 	//ctx.Debugf("resp %v", string(respBody))
-	ctx.Infof("[%v] resp %v", method, string(respBody))
+	ctx.Infof("[%v] resp %v", path, string(respBody))
 	ctx.LogFields(string(xContext.RespBody), string(respBody))
 	ctx.LogFields(string(xContext.HttpRespHeader), utils.MustJson(httpResp.Header()))
 	err = json.Unmarshal(respBody, resp)
