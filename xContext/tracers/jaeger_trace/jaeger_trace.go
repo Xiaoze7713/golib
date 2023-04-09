@@ -20,6 +20,9 @@ type JaegerConfig struct {
 	ServiceName   string  `json:"service_name" toml:"service_name"`
 	Param         float64 `json:"param" toml:"param"`
 	AgentHostPort string  `json:"agent_host_port" toml:"agent_host_port"`
+	EndPoint      string  `json:"end_point" toml:"endpoint"`
+	User          string  `json:"user" toml:"user"`
+	Passwd        string  `json:"passwd" toml:"passwd"`
 }
 
 var tracer opentracing.Tracer
@@ -64,9 +67,15 @@ func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) 
 				QueueSize:           100,
 				BufferFlushInterval: time.Second,
 				LogSpans:            true,
-				LocalAgentHostPort:  jConf.AgentHostPort, // TODO(qingwen): move to config
 			},
 			RPCMetrics: false,
+		}
+		if jConf.AgentHostPort != "" {
+			cfg.Reporter.LocalAgentHostPort = jConf.AgentHostPort
+		} else if jConf.EndPoint != "" {
+			cfg.Reporter.CollectorEndpoint = jConf.EndPoint
+			cfg.Reporter.User = jConf.User
+			cfg.Reporter.Password = jConf.Passwd
 		}
 
 		// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log
