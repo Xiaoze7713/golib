@@ -20,7 +20,7 @@ type JaegerConfig struct {
 	ServiceName   string  `json:"service_name" toml:"service_name"`
 	Param         float64 `json:"param" toml:"param"`
 	AgentHostPort string  `json:"agent_host_port" toml:"agent_host_port"`
-	EndPoint      string  `json:"end_point" toml:"endpoint"`
+	EndPoint      string  `json:"end_point" toml:"end_point"`
 	User          string  `json:"user" toml:"user"`
 	Passwd        string  `json:"passwd" toml:"passwd"`
 }
