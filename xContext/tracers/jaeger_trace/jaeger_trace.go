@@ -7,13 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"git.singularity-ai.com/backend/library/xContext"
 	"github.com/BurntSushi/toml"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
-	"github.com/uber/jaeger-lib/metrics"
-
-	"git.singularity-ai.com/backend/library/xContext"
 )
 
 type JaegerConfig struct {
@@ -42,7 +40,7 @@ func Init(filePath string) (opentracing.Tracer, io.Closer, error) {
 	if _, err := toml.DecodeFile(filePath, &config); err != nil {
 		panic(fmt.Sprintf("Can't load config file, %s", err.Error()))
 	}
-	return NewJaegerTrace(&config)
+	return NewJaegerTrace(&config, nil)
 }
 
 func GetTracer() opentracing.Tracer {
@@ -53,7 +51,7 @@ func GetCloser() io.Closer {
 	return closer
 }
 
-func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) {
+func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Tracer, io.Closer, error) {
 	once := sync.Once{}
 	var err error
 	once.Do(func() {
@@ -81,13 +79,13 @@ func NewJaegerTrace(jConf *JaegerConfig) (opentracing.Tracer, io.Closer, error) 
 		// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log
 		// and github.com/uber/jaeger-lib/metrics respectively to bind to real logging and metrics
 		// frameworks.
-		jLogger := jaeger.NullLogger
-		jMetricsFactory := metrics.NullFactory
-
+		var jLogger jaeger.Logger = jaeger.NullLogger
+		if logger != nil {
+			jLogger = logger
+		}
 		// Initialize tracer with a logger and a metrics factory
 		tracer, closer, err = cfg.NewTracer(
 			jaegercfg.Logger(jLogger),
-			jaegercfg.Metrics(jMetricsFactory),
 		)
 	})
 	return tracer, closer, err
