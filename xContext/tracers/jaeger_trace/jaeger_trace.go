@@ -19,6 +19,7 @@ type JaegerConfig struct {
 	Param         float64 `json:"param" toml:"param"`
 	AgentHostPort string  `json:"agent_host_port" toml:"agent_host_port"`
 	EndPoint      string  `json:"end_point" toml:"end_point"`
+	SamplingUrl   string  `json:"sampling_url" toml:"sampling_url"`
 	User          string  `json:"user" toml:"user"`
 	Passwd        string  `json:"passwd" toml:"passwd"`
 }
@@ -58,8 +59,9 @@ func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Trac
 		cfg := jaegercfg.Configuration{
 			ServiceName: jConf.ServiceName, // TODO(qingwen): move to config
 			Sampler: &jaegercfg.SamplerConfig{
-				Type:  jaeger.SamplerTypeConst,
-				Param: jConf.Param,
+				Type:              jaeger.SamplerTypeRemote,
+				SamplingServerURL: jConf.SamplingUrl,
+				Param:             jConf.Param,
 			},
 			Reporter: &jaegercfg.ReporterConfig{
 				QueueSize:           100,
