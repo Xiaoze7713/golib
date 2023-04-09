@@ -3,9 +3,9 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/generic_conv"
-	"git.singularity-ai.com/backend/library/utils"
-	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
+	"git.singularity-ai.com/backend/library/v2/generic_conv"
+	"git.singularity-ai.com/backend/library/v2/utils"
+	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"strconv"
 	"time"

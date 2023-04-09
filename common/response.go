@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"git.singularity-ai.com/backend/library/arch/web"
+	"git.singularity-ai.com/backend/library/v2/arch/web"
 )
 
 type Resp struct {

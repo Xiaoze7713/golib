@@ -3,7 +3,7 @@ package xhttp
 import (
 	"encoding/json"
 	"fmt"
-	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/v2/utils"
 	jsoniter "github.com/json-iterator/go"
 	"strings"
 	"testing"

@@ -18,14 +18,14 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 
-	"git.singularity-ai.com/backend/library/arch/rpc"
-	"git.singularity-ai.com/backend/library/arch/store/mysql"
-	"git.singularity-ai.com/backend/library/arch/store/redis"
-	"git.singularity-ai.com/backend/library/arch/web"
-	"git.singularity-ai.com/backend/library/env"
-	"git.singularity-ai.com/backend/library/kafka"
-	logger "git.singularity-ai.com/backend/library/log"
-	"git.singularity-ai.com/backend/library/service"
+	"git.singularity-ai.com/backend/library/v2/arch/rpc"
+	"git.singularity-ai.com/backend/library/v2/arch/store/mysql"
+	"git.singularity-ai.com/backend/library/v2/arch/store/redis"
+	"git.singularity-ai.com/backend/library/v2/arch/web"
+	"git.singularity-ai.com/backend/library/v2/env"
+	"git.singularity-ai.com/backend/library/v2/kafka"
+	logger "git.singularity-ai.com/backend/library/v2/log"
+	"git.singularity-ai.com/backend/library/v2/service"
 )
 
 // AppConfig struct

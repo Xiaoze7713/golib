@@ -14,7 +14,7 @@ import (
 	"github.com/zouyx/agollo/v4"
 	"github.com/zouyx/agollo/v4/env/config"
 
-	"git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/v2/log"
 )
 
 var client *Client

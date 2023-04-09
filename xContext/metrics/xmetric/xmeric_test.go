@@ -2,7 +2,7 @@ package xmetric
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/xContext/base_if/xmetric_base"
+	"git.singularity-ai.com/backend/library/v2/xContext/base_if/xmetric_base"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

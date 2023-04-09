@@ -8,12 +8,12 @@
 package service
 
 import (
-	"git.singularity-ai.com/backend/library/apollo"
-	"git.singularity-ai.com/backend/library/arch/web"
-	"git.singularity-ai.com/backend/library/log"
-	"git.singularity-ai.com/backend/library/service/token"
-	"git.singularity-ai.com/backend/library/xContext"
-	"git.singularity-ai.com/backend/library/xContext/tracers/jaeger_trace"
+	"git.singularity-ai.com/backend/library/v2/apollo"
+	"git.singularity-ai.com/backend/library/v2/arch/web"
+	"git.singularity-ai.com/backend/library/v2/log"
+	"git.singularity-ai.com/backend/library/v2/service/token"
+	"git.singularity-ai.com/backend/library/v2/xContext"
+	"git.singularity-ai.com/backend/library/v2/xContext/tracers/jaeger_trace"
 )
 
 // todo 待完善

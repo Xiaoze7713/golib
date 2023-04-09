@@ -10,7 +10,7 @@ package redis
 import (
 	rds "github.com/gomodule/redigo/redis"
 
-	"git.singularity-ai.com/backend/library/arch/web"
+	"git.singularity-ai.com/backend/library/v2/arch/web"
 )
 
 func sampleDo(ctx *web.WebContext, method string, args ...interface{}) (reply interface{}, err error) {

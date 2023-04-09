@@ -3,7 +3,7 @@ package xContext
 import (
 	"bytes"
 	"fmt"
-	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/v2/utils"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"

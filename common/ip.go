@@ -10,7 +10,7 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"git.singularity-ai.com/backend/library/env"
+	"git.singularity-ai.com/backend/library/v2/env"
 	"net"
 	"runtime"
 	"strconv"

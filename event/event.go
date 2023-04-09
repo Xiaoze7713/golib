@@ -13,7 +13,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"git.singularity-ai.com/backend/library/common"
+	"git.singularity-ai.com/backend/library/v2/common"
 )
 
 const (

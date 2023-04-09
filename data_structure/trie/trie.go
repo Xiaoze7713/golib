@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/v2/utils"
 	"sort"
 	"unicode"
 )

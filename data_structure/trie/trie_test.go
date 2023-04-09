@@ -1,8 +1,8 @@
 package trie
 
 import (
-	"git.singularity-ai.com/backend/library/easy_process"
-	"git.singularity-ai.com/backend/library/utils"
+	"git.singularity-ai.com/backend/library/v2/easy_process"
+	"git.singularity-ai.com/backend/library/v2/utils"
 	"regexp"
 	"strings"
 	"testing"

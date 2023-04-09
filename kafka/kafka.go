@@ -10,7 +10,7 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/log"
+	"git.singularity-ai.com/backend/library/v2/log"
 	"github.com/BurntSushi/toml"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"io/ioutil"

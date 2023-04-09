@@ -2,8 +2,8 @@ package redis_instance_tool
 
 import (
 	"errors"
-	"git.singularity-ai.com/backend/library/data_structure/message_queue"
-	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
+	"git.singularity-ai.com/backend/library/v2/data_structure/message_queue"
+	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 )
 

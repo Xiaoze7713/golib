@@ -2,8 +2,8 @@ package test
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/xContext"
-	"git.singularity-ai.com/backend/library/xContext/loggers/xlog"
+	"git.singularity-ai.com/backend/library/v2/xContext"
+	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"runtime"
 	"sync"
 	"testing"
