@@ -64,46 +64,46 @@ func (ctx *WebContext) ContextPrefix() string {
 
 func (ctx *WebContext) Debugf(format string, args ...interface{}) {
 	format = ctx.ContextPrefix() + format
-	ctx.XContext.LoggerIF.Debugf(format, args...)
+	ctx.XContext.LoggerIF.Debugf(nil, format, args...)
 }
 
 func (ctx *WebContext) Infof(format string, args ...interface{}) {
 	format = ctx.ContextPrefix() + format
-	ctx.XContext.LoggerIF.Infof(format, args...)
+	ctx.XContext.LoggerIF.Infof(nil, format, args...)
 }
 
 func (ctx *WebContext) Warnf(format string, args ...interface{}) {
 	format = ctx.ContextPrefix() + format
-	ctx.XContext.LoggerIF.Warnf(format, args...)
+	ctx.XContext.LoggerIF.Warnf(nil, format, args...)
 }
 
 func (ctx *WebContext) Errorf(format string, args ...interface{}) {
 	format = ctx.ContextPrefix() + format
-	ctx.XContext.LoggerIF.Errorf(format, args...)
+	ctx.XContext.LoggerIF.Errorf(nil, format, args...)
 }
 
 func (ctx *WebContext) Fatalf(format string, args ...interface{}) {
 	format = ctx.ContextPrefix() + format
-	ctx.XContext.LoggerIF.Fatalf(format, args...)
+	ctx.XContext.LoggerIF.Fatalf(nil, format, args...)
 }
 
 func (ctx *WebContext) Debug(args ...interface{}) {
-	ctx.XContext.LoggerIF.Debug(ctx.ContextPrefix(), ctx.ArgsFormats(args...))
+	ctx.XContext.LoggerIF.Debug(nil, ctx.ContextPrefix(), ctx.ArgsFormats(args...))
 }
 
 func (ctx *WebContext) Info(args ...interface{}) {
-	ctx.XContext.LoggerIF.Info(ctx.ContextPrefix(), ctx.ArgsFormats(args...))
+	ctx.XContext.LoggerIF.Info(nil, ctx.ContextPrefix(), ctx.ArgsFormats(args...))
 }
 
 func (ctx *WebContext) Warn(args ...interface{}) {
-	ctx.XContext.LoggerIF.Warn(ctx.ContextPrefix(), ctx.ArgsFormats(args...))
+	ctx.XContext.LoggerIF.Warn(nil, ctx.ContextPrefix(), ctx.ArgsFormats(args...))
 }
 
 func (ctx *WebContext) Error(args ...interface{}) {
-	ctx.XContext.LoggerIF.Error(ctx.ContextPrefix(), ctx.ArgsFormats(args...))
+	ctx.XContext.LoggerIF.Error(nil, ctx.ContextPrefix(), ctx.ArgsFormats(args...))
 }
 
 func (ctx *WebContext) Fatal(args ...interface{}) {
-	ctx.XContext.LoggerIF.Fatal(ctx.ContextPrefix(), ctx.ArgsFormats(args...))
+	ctx.XContext.LoggerIF.Fatal(nil, ctx.ContextPrefix(), ctx.ArgsFormats(args...))
 
 }
