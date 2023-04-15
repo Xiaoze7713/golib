@@ -28,7 +28,10 @@ func xInit() error {
 		ServiceName:   serverName,
 		Param:         0,
 		AgentHostPort: "127.0.0.1:6832",
-	})
+		SamplingUrl:   "",
+		User:          "",
+		Passwd:        "",
+	}, nil)
 	if err != nil {
 		return err
 	}
