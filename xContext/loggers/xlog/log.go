@@ -2,17 +2,19 @@ package xlog
 
 import (
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"log"
 	"path"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	LEVEL_FLAGS = [...]string{"TRACE", "DEBUG", "INFO", "PUBLIC", "WARN", "ERROR", "FATAL"}
-	recordPool  *sync.Pool
+	LevelFlags = [...]string{"TRACE", "DEBUG", "INFO", "PUBLIC", "WARN", "ERROR", "FATAL"}
+	recordPool *sync.Pool
 )
 
 const (
@@ -25,17 +27,81 @@ const (
 	FATAL
 )
 
-const tunnel_size_default = 1024
+const tunnelSizeDefault = 1024
+
+const (
+	FmtRaw  = "raw"
+	FmtJson = "json"
+)
 
 type Record struct {
-	time  string
-	code  string
-	info  string
-	level int
+	time      string
+	code      string
+	traceID   interface{}
+	spanID    interface{}
+	specialKV map[string]interface{}
+	kvMap     map[string]interface{}
+	argFields []interface{}
+	content   string
+	level     int
+	jsonFmt   bool
+}
+
+type JsonFmt struct {
+	Time      string                 `json:"time"`
+	Code      string                 `json:"code"`
+	TraceID   interface{}            `json:"trace_id"`
+	SpanID    interface{}            `json:"span_id"`
+	Level     string                 `json:"level"`
+	SpecialKV map[string]interface{} `json:"special_kv"`
+	KvMap     map[string]interface{} `json:"kv_map"`
 }
 
 func (r *Record) String() string {
-	return fmt.Sprintf("[%s][%s][%s] %s\n", LEVEL_FLAGS[r.level], r.time, r.code, r.info)
+	// todo
+	if r.jsonFmt {
+		return r.JsonString()
+	} else {
+		return r.RawString()
+	}
+}
+
+func (r *Record) RawString() string {
+	content := r.content
+	if r.spanID != "" {
+		content = fmt.Sprintf("[span_id:%v]", r.spanID) + content
+	}
+	if r.traceID != "" {
+		content = fmt.Sprintf("[trace_id:%v]", r.traceID) + content
+	}
+	return fmt.Sprintf("[%s][%s][%s] %s\n", LevelFlags[r.level], r.time, r.code, r.content)
+}
+
+func (r *Record) JsonString() string {
+	// todo
+	jf := JsonFmt{}
+	jf.Time = r.time
+	jf.Level = strings.ToLower(LevelFlags[r.level])
+	jf.Code = r.code
+	jf.TraceID = r.traceID
+	jf.SpanID = r.spanID
+	jf.SpecialKV = r.specialKV
+	if r.kvMap != nil { // kv模式
+		jf.KvMap = r.kvMap
+	} else if r.content != "" {
+		jf.KvMap = map[string]interface{}{"content": r.content}
+	} else if len(r.argFields) != 0 {
+		jf.KvMap = map[string]interface{}{}
+		argFields := r.argFields
+		if len(r.argFields) >= 1000 {
+			argFields = argFields[:1000]
+		}
+		for i, arg := range argFields {
+			jf.KvMap[fmt.Sprintf("f%04d", i)] = arg
+		}
+	}
+	msg, _ := jsoniter.MarshalToString(jf)
+	return fmt.Sprintf("%s\n", msg)
 }
 
 type Writer interface {
@@ -43,7 +109,7 @@ type Writer interface {
 	Write(*Record) error
 }
 
-type Rotater interface {
+type Rotated interface {
 	Rotate() error
 	SetPathPattern(string) error
 }
@@ -61,17 +127,18 @@ type Logger struct {
 	c           chan bool
 	layout      string
 	skipStr     string
+	skipStr2    string
+	Format      string
 }
 
 func NewLogger() *Logger {
-	if logger_default != nil && takeup == false {
-		takeup = true
-		return logger_default
+	if loggerDefault != nil && takeUp == false {
+		takeUp = true
+		return loggerDefault
 	}
-
 	l := new(Logger)
 	l.writers = make([]Writer, 0, 2)
-	l.tunnel = make(chan *Record, tunnel_size_default)
+	l.tunnel = make(chan *Record, tunnelSizeDefault)
 	l.c = make(chan bool, 1)
 	l.level = DEBUG
 	l.layout = "2006-01-02 15:04:05.999999"
@@ -93,60 +160,102 @@ func (l *Logger) SetLevel(lvl int) {
 	l.level = lvl
 }
 
+func (l *Logger) SetFmtJson() {
+	l.Format = FmtJson
+}
+
+func (l *Logger) SetFmtRaw() {
+	l.Format = FmtRaw
+}
+
 func (l *Logger) SetLayout(layout string) {
 	l.layout = layout
 }
 
-func (l *Logger) Tracef(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(TRACE, fmt, args...)
+func (l *Logger) Tracef(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(TRACE, specialKV, fmt, args...)
 }
 
-func (l *Logger) Debugf(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(DEBUG, fmt, args...)
+func (l *Logger) Debugf(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(DEBUG, specialKV, fmt, args...)
 }
 
-func (l *Logger) Warnf(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(WARNING, fmt, args...)
+func (l *Logger) Warnf(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(WARNING, specialKV, fmt, args...)
 }
 
-func (l *Logger) Infof(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(INFO, fmt, args...)
+func (l *Logger) Infof(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(INFO, specialKV, fmt, args...)
 }
 
-func (l *Logger) Errorf(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(ERROR, fmt, args...)
+func (l *Logger) Errorf(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(ERROR, specialKV, fmt, args...)
 }
 
-func (l *Logger) Fatalf(fmt string, args ...interface{}) {
-	l.deliverRecordToWriter(FATAL, fmt, args...)
+func (l *Logger) Fatalf(specialKV map[string]interface{}, fmt string, args ...interface{}) {
+	l.deliverRecordToWriter(FATAL, specialKV, fmt, args...)
 }
 
-func (l *Logger) Trace(args ...interface{}) {
-	l.deliverRecordToWriter(TRACE, "", args...)
+func (l *Logger) Trace(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(TRACE, specialKV, "", args...)
 }
 
-func (l *Logger) Debug(args ...interface{}) {
-	l.deliverRecordToWriter(DEBUG, "", args...)
+func (l *Logger) Debug(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(DEBUG, specialKV, "", args...)
 }
 
-func (l *Logger) Warn(args ...interface{}) {
-	l.deliverRecordToWriter(WARNING, "", args...)
+func (l *Logger) Warn(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(WARNING, specialKV, "", args...)
 }
 
-func (l *Logger) Info(args ...interface{}) {
-	l.deliverRecordToWriter(INFO, "", args...)
+func (l *Logger) Info(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(INFO, specialKV, "", args...)
 }
 
-func (l *Logger) Error(args ...interface{}) {
-	l.deliverRecordToWriter(ERROR, "", args...)
+func (l *Logger) Error(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(ERROR, specialKV, "", args...)
 }
 
-func (l *Logger) Fatal(args ...interface{}) {
-	l.deliverRecordToWriter(FATAL, "", args...)
+func (l *Logger) Fatal(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(FATAL, specialKV, "", args...)
 }
 
-func (l *Logger) Public(args ...interface{}) {
-	l.deliverRecordToWriter(PUBLIC, "", args...)
+func (l *Logger) Public(specialKV map[string]interface{}, args ...interface{}) {
+	l.deliverRecordToWriter(PUBLIC, specialKV, "", args...)
+}
+
+func (l *Logger) TraceKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(TRACE, specialKV, kvFields)
+}
+
+func (l *Logger) DebugKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(DEBUG, specialKV, kvFields)
+
+}
+
+func (l *Logger) WarnKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(WARNING, specialKV, kvFields)
+
+}
+
+func (l *Logger) InfoKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(INFO, specialKV, kvFields)
+
+}
+
+func (l *Logger) ErrorKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(ERROR, specialKV, kvFields)
+
+}
+
+func (l *Logger) FatalKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(FATAL, specialKV, kvFields)
+
+}
+
+func (l *Logger) PublicKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(PUBLIC, specialKV, kvFields)
+
 }
 
 func (l *Logger) Close() {
@@ -170,17 +279,9 @@ func (l *Logger) CodeLine(skip int) string {
 	return ""
 }
 
-func (l *Logger) deliverRecordToWriter(level int, format string, args ...interface{}) {
-	var inf string
-
+func (l *Logger) deliverRecordToWriter(level int, specialKV map[string]interface{}, format string, args ...interface{}) {
 	if level < l.level {
 		return
-	}
-
-	if format != "" {
-		inf = fmt.Sprintf(format, args...)
-	} else {
-		inf = fmt.Sprint(args...)
 	}
 
 	// source code, file and line num
@@ -191,16 +292,75 @@ func (l *Logger) deliverRecordToWriter(level int, format string, args ...interfa
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
-	r.info = inf
+	if l.Format == FmtJson {
+		r.jsonFmt = true
+	}
+	if spanID, ok := specialKV["span_id"]; ok {
+		r.spanID = spanID
+	}
+	if traceID, ok := specialKV["trace_id"]; ok {
+		r.traceID = traceID
+	}
+	if format != "" {
+		r.content = fmt.Sprintf(format, args...)
+	} else {
+		r.argFields = args
+		r.content = fmt.Sprint(args...)
+		//inf = fmt.Sprint(args...)
+	}
+
 	r.code = l.CodeLine(3)
-	if len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
+	if l.skipStr != "" && len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
 		r.code = l.CodeLine(4)
+	}
+	if l.skipStr2 != "" && len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
+		r.code = l.CodeLine(5)
 	}
 	//for i := 0; i < 6; i++ {
 	//	fmt.Println(l.CodeLine(i))
 	//}
 	r.time = l.lastTimeStr
 	r.level = level
+	l.tunnel <- r
+}
+
+func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	if level < l.level {
+		return
+	}
+
+	// source code, file and line num
+	// format time
+	now := time.Now()
+	if now.UnixNano() != l.lastTime {
+		l.lastTime = now.UnixNano()
+		l.lastTimeStr = now.Format(l.layout)
+	}
+	r := recordPool.Get().(*Record)
+	if l.Format == FmtJson {
+		r.jsonFmt = true
+	}
+	r.code = l.CodeLine(3)
+	if len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
+		r.code = l.CodeLine(4)
+	}
+	if len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
+		r.code = l.CodeLine(5)
+	}
+	if traceID, ok := specialKV["trace_id"]; ok {
+		r.traceID = traceID
+	}
+	if spanID, ok := specialKV["span_id"]; ok {
+		r.spanID = spanID
+	}
+	//for i := 0; i < 6; i++ {
+	//	fmt.Println(l.CodeLine(i))
+	//}
+	r.time = l.lastTimeStr
+	r.level = level
+	if len(kvFields) > 0 {
+		r.kvMap = kvFields
+	}
 
 	l.tunnel <- r
 }
@@ -257,7 +417,7 @@ func boostrapLogWriter(logger *Logger) {
 
 		case <-rotateTimer.C:
 			for _, w := range logger.writers {
-				if r, ok := w.(Rotater); ok {
+				if r, ok := w.(Rotated); ok {
 					if err := r.Rotate(); err != nil {
 						log.Println(err)
 					}
@@ -266,93 +426,4 @@ func boostrapLogWriter(logger *Logger) {
 			rotateTimer.Reset(time.Second * 10)
 		}
 	}
-}
-
-// default
-var (
-	logger_default *Logger
-	takeup         = false
-)
-
-func GetLogger() *Logger {
-	return logger_default
-}
-
-func SetLevel(lvl int) {
-	logger_default.level = lvl
-}
-
-func SetLayout(layout string) {
-	logger_default.layout = layout
-}
-
-func Tracef(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(TRACE, fmt, args...)
-}
-
-func Debugf(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(DEBUG, fmt, args...)
-}
-
-func Warnf(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(WARNING, fmt, args...)
-}
-
-func Infof(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(INFO, fmt, args...)
-}
-
-func Errorf(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(ERROR, fmt, args...)
-}
-
-func Fatalf(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(FATAL, fmt, args...)
-}
-
-func Publicf(fmt string, args ...interface{}) {
-	logger_default.deliverRecordToWriter(PUBLIC, fmt, args...)
-}
-
-func Trace(args ...interface{}) {
-	logger_default.deliverRecordToWriter(TRACE, "", args...)
-}
-
-func Debug(args ...interface{}) {
-	logger_default.deliverRecordToWriter(DEBUG, "", args...)
-}
-
-func Warn(args ...interface{}) {
-	logger_default.deliverRecordToWriter(WARNING, "", args...)
-}
-
-func Info(args ...interface{}) {
-	logger_default.deliverRecordToWriter(INFO, "", args...)
-}
-
-func Error(args ...interface{}) {
-	logger_default.deliverRecordToWriter(ERROR, "", args...)
-}
-
-func Fatal(args ...interface{}) {
-	logger_default.deliverRecordToWriter(FATAL, "", args...)
-}
-
-func Public(args ...interface{}) {
-	logger_default.deliverRecordToWriter(PUBLIC, "", args...)
-}
-
-func Register(w Writer) {
-	logger_default.Register(w)
-}
-
-func Close() {
-	logger_default.Close()
-}
-
-func init() {
-	logger_default = NewLogger()
-	recordPool = &sync.Pool{New: func() interface{} {
-		return &Record{}
-	}}
 }

@@ -163,6 +163,23 @@ func InitByNullOpt() (err error) {
 	return err
 }
 
+func InitByNullOptNoLog() (err error) {
+	//serverName := "x_content_test"
+	metrics := null_metric.MetricsNull{}
+	trace := xtrace_base.XTraceNoop{}
+	//trace, _, err := jaeger_trace.NewJaegerTrace(&jaeger_trace.JaegerConfig{
+	//	ServiceName:   serverName,
+	//	Param:         0,
+	//	AgentHostPort: "127.0.0.1:6832",
+	//})
+	//if err != nil {
+	//	return err
+	//}
+	Init(xlog.GetLogger(), trace, metrics,
+		nil, nil, nil, nil, nil)
+	return err
+}
+
 func Init(logger xlog_base.LoggerIF,
 	trace xtrace_base.TracerIF,
 	metrics xmetric_base.MetricsIF,
@@ -245,7 +262,7 @@ func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XCo
 	gCtx := ctx.Value("xContext")
 	xCtx, ok := gCtx.(*XContext)
 	if !ok {
-		mLogger.Error(notGrandFather)
+		mLogger.Error(nil, notGrandFather)
 		xCtx = NewXContextWithContext(ctx, operationName)
 		return xCtx, nil
 	}

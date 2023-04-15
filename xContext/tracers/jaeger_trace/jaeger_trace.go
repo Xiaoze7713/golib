@@ -3,6 +3,7 @@ package jaeger_trace
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -59,9 +60,8 @@ func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Trac
 		cfg := jaegercfg.Configuration{
 			ServiceName: jConf.ServiceName, // TODO(qingwen): move to config
 			Sampler: &jaegercfg.SamplerConfig{
-				Type:              jaeger.SamplerTypeRemote,
-				SamplingServerURL: jConf.SamplingUrl,
-				Param:             jConf.Param,
+				Type:  jaeger.SamplerTypeConst,
+				Param: jConf.Param,
 			},
 			Reporter: &jaegercfg.ReporterConfig{
 				QueueSize:           100,
@@ -73,7 +73,7 @@ func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Trac
 		if jConf.AgentHostPort != "" {
 			cfg.Reporter.LocalAgentHostPort = jConf.AgentHostPort
 		} else if jConf.EndPoint != "" {
-			cfg.Reporter.CollectorEndpoint = jConf.EndPoint
+			cfg.Reporter.CollectorEndpoint = url.QueryEscape(jConf.EndPoint)
 			cfg.Reporter.User = jConf.User
 			cfg.Reporter.Password = jConf.Passwd
 		}

@@ -108,7 +108,7 @@ func SetupLogWithConf(lc LogConfig) (err error) {
 		SetLevel(FATAL)
 
 	default:
-		err = errors.New("Invalid log level")
+		err = errors.New("invalid log level")
 	}
 	return
 }

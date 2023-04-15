@@ -2,13 +2,18 @@ package null_log
 
 type LoggerNull struct{}
 
-func (LoggerNull) Debug(args ...interface{})              {}
-func (LoggerNull) Info(args ...interface{})               {}
-func (LoggerNull) Warn(args ...interface{})               {}
-func (LoggerNull) Error(args ...interface{})              {}
-func (LoggerNull) Fatal(args ...interface{})              {}
-func (LoggerNull) Debugf(fmt string, args ...interface{}) {}
-func (LoggerNull) Warnf(fmt string, args ...interface{})  {}
-func (LoggerNull) Errorf(fmt string, args ...interface{}) {}
-func (LoggerNull) Fatalf(fmt string, args ...interface{}) {}
-func (LoggerNull) Infof(fmt string, args ...interface{})  {}
+func (LoggerNull) Debug(specialKV map[string]interface{}, args ...interface{})              {}
+func (LoggerNull) Info(specialKV map[string]interface{}, args ...interface{})               {}
+func (LoggerNull) Warn(specialKV map[string]interface{}, args ...interface{})               {}
+func (LoggerNull) Error(specialKV map[string]interface{}, args ...interface{})              {}
+func (LoggerNull) Fatal(specialKV map[string]interface{}, args ...interface{})              {}
+func (LoggerNull) Debugf(specialKV map[string]interface{}, fmt string, args ...interface{}) {}
+func (LoggerNull) Warnf(specialKV map[string]interface{}, fmt string, args ...interface{})  {}
+func (LoggerNull) Errorf(specialKV map[string]interface{}, fmt string, args ...interface{}) {}
+func (LoggerNull) Fatalf(specialKV map[string]interface{}, fmt string, args ...interface{}) {}
+func (LoggerNull) Infof(specialKV map[string]interface{}, fmt string, args ...interface{})  {}
+func (LoggerNull) DebugKV(specialKV map[string]interface{}, KV map[string]interface{})      {}
+func (LoggerNull) InfoKV(specialKV map[string]interface{}, KV map[string]interface{})       {}
+func (LoggerNull) WarnKV(specialKV map[string]interface{}, KV map[string]interface{})       {}
+func (LoggerNull) ErrorKV(specialKV map[string]interface{}, KV map[string]interface{})      {}
+func (LoggerNull) FatalKV(specialKV map[string]interface{}, KV map[string]interface{})      {}
