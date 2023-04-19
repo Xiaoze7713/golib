@@ -1,4 +1,4 @@
-package trie
+package trie_generic
 
 import (
 	"git.singularity-ai.com/backend/library/v2/utils"
@@ -8,7 +8,7 @@ import (
 
 type Node[T any] struct {
 	isLeaf   bool
-	leafData T
+	leafData *DataType[T]
 	tail     string
 	nextMap  map[string]*Node[T]
 }
@@ -44,23 +44,23 @@ func (m *Node[T]) GetTail() string {
 	return m.tail
 }
 
-func (m *Node[T]) GetData() (data T) {
+func (m *Node[T]) GetData() (data *DataType[T]) {
 	return m.leafData
 }
 
-func (m *Node[T]) SetData(data interface{}) {
+func (m *Node[T]) SetData(data *DataType[T]) {
 	m.leafData = data
 }
 
 type DATrie[T any] struct {
 	root      *Node[T]
-	ScoreFunc func(t T) float64
+	ScoreFunc func(t *DataType[T]) float64
 }
 
-func NewTrie[T any](scoreFunc func(T) float64) *DATrie[T] {
+func NewTrie[T any](scoreFunc func(*DataType[T]) float64) *DATrie[T] {
 	newTrie := &DATrie[T]{root: &Node[T]{nextMap: map[string]*Node[T]{}}}
 	if scoreFunc == nil {
-		newTrie.ScoreFunc = func(t T) (score float64) {
+		newTrie.ScoreFunc = func(t *DataType[T]) (score float64) {
 			return 0
 		}
 	} else {
@@ -69,12 +69,16 @@ func NewTrie[T any](scoreFunc func(T) float64) *DATrie[T] {
 	return newTrie
 }
 
-type Result[T any] struct {
-	Str  string
+type DataType[T any] struct {
 	Data T
 }
 
-func (m *DATrie[T]) Insert(word string, data T) {
+type Result[T any] struct {
+	Str  string
+	Data *DataType[T]
+}
+
+func (m *DATrie[T]) Insert(word string, data *DataType[T]) {
 	idx := 0
 	node := m.root
 	s := []rune(word)

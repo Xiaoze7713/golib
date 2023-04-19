@@ -38,3 +38,26 @@ func Conv[T any](s string, unmarshal func(string, interface{}) error) (newT T, e
 		return *val, err
 	}
 }
+
+func DefaultValue[T any]() (newT T, err error) {
+	var t T
+	if reflect.TypeOf(t).Kind() == reflect.Uintptr || reflect.TypeOf(t).Kind() == reflect.Pointer {
+		v := reflect.New(reflect.TypeOf(t).Elem())
+		ptr, ok := v.Interface().(T)
+		if !ok {
+			err = errors.New("failed conv ptr")
+			xlog.Error(err)
+			return t, err
+		}
+		return ptr, err
+	} else {
+		v := reflect.New(reflect.TypeOf(t))
+		val, ok := v.Interface().(*T)
+		if !ok {
+			err = errors.New("failed conv base type")
+			xlog.Error(err)
+			return t, err
+		}
+		return *val, err
+	}
+}
