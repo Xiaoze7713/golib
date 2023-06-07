@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+var LockBusy = errors.New("lock busy")
+
 type UnlockHdl struct {
 	dLock *DLock
 	dKey  string
@@ -80,7 +82,7 @@ func (m *DLock) NewLock(ctx context.Context, key string) (ulk *UnlockHdl, err er
 		time.Sleep(step)
 	}
 	if dKey == "" {
-		return nil, errors.New("lock busy")
+		return nil, LockBusy
 	}
 	ulk = &UnlockHdl{
 		dLock: m,
