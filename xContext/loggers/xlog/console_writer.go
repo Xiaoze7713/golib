@@ -7,47 +7,8 @@ import (
 
 type colorRecord Record
 
-func (r *colorRecord) String() string {
-	content := r.content
-	if r.spanID != "" {
-		content = fmt.Sprintf("[span_id:%v]", r.spanID) + content
-	}
-	if r.traceID != "" {
-		content = fmt.Sprintf("[trace_id:%v]", r.traceID) + content
-	}
-	//return fmt.Sprintf("[%s][%s][%s] %s\n", LevelFlags[r.level], r.time, r.code, r.content)
-	switch r.level {
-	case TRACE:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[96m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-	case DEBUG:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[94m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-
-	case INFO:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[92m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-
-	case WARNING:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[103m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-
-	case ERROR:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[101m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-
-	case FATAL:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[105m%s\033[0m] \033[47;30m%s\033[0m %s\n",
-			r.time, LevelFlags[r.level], r.code, content)
-	case PUBLIC:
-		return fmt.Sprintf("\033[96m%s\033[0m [\033[96m%s\033[0m] \033[47;30m%s\033[0m \033[36m%s\033[0m\n",
-			r.time, LevelFlags[r.level], r.code, content)
-	}
-	return ""
-}
-
 type ConsoleWriter struct {
-	color bool
+	fmt FmtType
 }
 
 func NewConsoleWriter() *ConsoleWriter {
@@ -55,18 +16,41 @@ func NewConsoleWriter() *ConsoleWriter {
 }
 
 func (w *ConsoleWriter) Write(r *Record) error {
-	if w.color {
-		fmt.Fprint(os.Stdout, ((*colorRecord)(r)).String())
-	} else {
-		fmt.Fprint(os.Stdout, r.String())
+	data := ""
+	switch w.Fmt() {
+	case FmtTypeRaw:
+		data = r.RawString()
+	case FmtTypeJson:
+		data = r.JsonString()
+	case FmtTypeColorRaw:
+		data = r.ColorString()
+	default:
+		data = r.JsonString()
 	}
-	return nil
+	_, err := fmt.Fprint(os.Stdout, data)
+	return err
 }
 
 func (w *ConsoleWriter) Init() error {
 	return nil
 }
 
-func (w *ConsoleWriter) SetColor(c bool) {
-	w.color = c
+func (w *ConsoleWriter) SetJson() {
+	w.fmt = FmtTypeJson
+}
+
+func (w *ConsoleWriter) SetRaw() {
+	w.fmt = FmtTypeRaw
+}
+
+func (w *ConsoleWriter) SetColorRaw() {
+	w.fmt = FmtTypeColorRaw
+}
+
+func (w *ConsoleWriter) SetFmt(fmt FmtType) {
+	w.fmt = fmt
+}
+
+func (w *ConsoleWriter) Fmt() FmtType {
+	return w.fmt
 }

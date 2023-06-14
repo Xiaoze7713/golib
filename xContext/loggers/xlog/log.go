@@ -30,8 +30,9 @@ const (
 const tunnelSizeDefault = 1024
 
 const (
-	FmtRaw  = "raw"
-	FmtJson = "json"
+	FmtTypeRaw FmtType = iota
+	FmtTypeJson
+	FmtTypeColorRaw
 )
 
 type Record struct {
@@ -44,7 +45,7 @@ type Record struct {
 	argFields []interface{}
 	content   string
 	level     int
-	jsonFmt   bool
+	FmtType   FmtType
 }
 
 type JsonFmt struct {
@@ -59,10 +60,15 @@ type JsonFmt struct {
 
 func (r *Record) String() string {
 	// todo
-	if r.jsonFmt {
-		return r.JsonString()
-	} else {
+	switch r.FmtType {
+	case FmtTypeRaw:
 		return r.RawString()
+	case FmtTypeJson:
+		return r.JsonString()
+	case FmtTypeColorRaw:
+		return r.ColorString()
+	default:
+		return r.JsonString()
 	}
 }
 
@@ -74,7 +80,7 @@ func (r *Record) RawString() string {
 	if r.traceID != "" {
 		content = fmt.Sprintf("[trace_id:%v]", r.traceID) + content
 	}
-	return fmt.Sprintf("[%s][%s][%s] %s\n", LevelFlags[r.level], r.time, r.code, r.content)
+	return fmt.Sprintf("[%s][%s][%s] %s\n", r.time, LevelFlags[r.level], r.code, r.content)
 }
 
 func (r *Record) JsonString() string {
@@ -104,9 +110,46 @@ func (r *Record) JsonString() string {
 	return fmt.Sprintf("%s\n", msg)
 }
 
+func (r *Record) ColorString() string {
+	content := r.content
+	if r.spanID != nil {
+		content = fmt.Sprintf("[span_id:%v]", r.spanID) + content
+	}
+	if r.traceID != nil {
+		content = fmt.Sprintf("[trace_id:%v]", r.traceID) + content
+	}
+	//return fmt.Sprintf("[%s][%s][%s] %s\n", LevelFlags[r.level], r.time, r.code, r.content)
+	// time
+	prefix := fmt.Sprintf("\033[0m[\033[96m%s\033[0m]", r.time)
+	// level
+	switch r.level {
+	case TRACE:
+		prefix += fmt.Sprintf("\033[0m[\033[96m%s\033[0m]", LevelFlags[r.level])
+	case DEBUG:
+		prefix += fmt.Sprintf("\033[0m[\033[94m%s\033[0m]", LevelFlags[r.level])
+	case INFO:
+		prefix += fmt.Sprintf("\033[0m[\033[92m%s\033[0m]", LevelFlags[r.level])
+	case WARNING:
+		prefix += fmt.Sprintf("\033[0m[\033[103m%s\033[0m]", LevelFlags[r.level])
+	case ERROR:
+		prefix += fmt.Sprintf("\033[0m[\033[101m%s\033[0m]", LevelFlags[r.level])
+	case FATAL:
+		prefix += fmt.Sprintf("\033[0m[\033[105m%s\033[0m]", LevelFlags[r.level])
+	case PUBLIC:
+		prefix += fmt.Sprintf("\033[0m[\033[96m%s\033[0m]", LevelFlags[r.level])
+	}
+	// code
+	prefix += fmt.Sprintf("\033[0m[\033[47;30m%s\033[0m] ", r.code)
+	content = prefix + content + "\n"
+	return content
+}
+
+type FmtType int
+
 type Writer interface {
 	Init() error
 	Write(*Record) error
+	Fmt() FmtType
 }
 
 type Rotated interface {
@@ -128,7 +171,7 @@ type Logger struct {
 	layout      string
 	skipStr     string
 	skipStr2    string
-	Format      string
+	FormatType  FmtType
 }
 
 func NewLogger() *Logger {
@@ -161,11 +204,15 @@ func (l *Logger) SetLevel(lvl int) {
 }
 
 func (l *Logger) SetFmtJson() {
-	l.Format = FmtJson
+	l.FormatType = FmtTypeJson
 }
 
 func (l *Logger) SetFmtRaw() {
-	l.Format = FmtRaw
+	l.FormatType = FmtTypeRaw
+}
+
+func (l *Logger) SetFmtColor() {
+	l.FormatType = FmtTypeColorRaw
 }
 
 func (l *Logger) SetLayout(layout string) {
@@ -292,9 +339,7 @@ func (l *Logger) deliverRecordToWriter(level int, specialKV map[string]interface
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
-	if l.Format == FmtJson {
-		r.jsonFmt = true
-	}
+	r.FmtType = l.FormatType
 	if spanID, ok := specialKV["span_id"]; ok {
 		r.spanID = spanID
 	}
@@ -337,9 +382,7 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
-	if l.Format == FmtJson {
-		r.jsonFmt = true
-	}
+	r.FmtType = l.FormatType
 	r.code = l.CodeLine(3)
 	if len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
 		r.code = l.CodeLine(4)

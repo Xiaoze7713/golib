@@ -21,6 +21,7 @@ type FileWriter struct {
 	fileBufWriter *bufio.Writer
 	actions       []func(*time.Time) int
 	variables     []interface{}
+	fmt           FmtType
 }
 
 func NewFileWriter() *FileWriter {
@@ -118,6 +119,26 @@ func (w *FileWriter) CreateLogFile() error {
 	}
 
 	return nil
+}
+
+func (w *FileWriter) Fmt() FmtType {
+	return FmtTypeRaw
+}
+
+func (w *FileWriter) SetFmt(fmt FmtType) {
+	w.fmt = fmt
+}
+
+func (w *FileWriter) SetJson() {
+	w.fmt = FmtTypeJson
+}
+
+func (w *FileWriter) SetRaw() {
+	w.fmt = FmtTypeRaw
+}
+
+func (w *FileWriter) SetColorRaw() {
+	w.fmt = FmtTypeColorRaw
 }
 
 func (w *FileWriter) Rotate() error {

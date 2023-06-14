@@ -7,18 +7,19 @@ import (
 )
 
 type ConfFileWriter struct {
-	On                  bool   `json:"On"`
-	LogPath             string `json:"LogPath"`
-	RotateLogPath       string `json:"RotateLogPath"`
-	WfLogPath           string `json:"WfLogPath"`
-	RotateWfLogPath     string `json:"RotateWfLogPath"`
-	PublicLogPath       string `json:"PublicLogPath"`
-	RotatePublicLogPath string `json:"RotatePublicLogPath"`
+	On                  bool    `json:"On"`
+	Fmt                 FmtType `json:"fmt"`
+	LogPath             string  `json:"LogPath"`
+	RotateLogPath       string  `json:"RotateLogPath"`
+	WfLogPath           string  `json:"WfLogPath"`
+	RotateWfLogPath     string  `json:"RotateWfLogPath"`
+	PublicLogPath       string  `json:"PublicLogPath"`
+	RotatePublicLogPath string  `json:"RotatePublicLogPath"`
 }
 
 type ConfConsoleWriter struct {
-	On    bool `json:"On"`
-	Color bool `json:"Color"`
+	On  bool    `json:"On"`
+	Fmt FmtType `json:"fmt"`
 }
 
 type LogConfig struct {
@@ -31,8 +32,8 @@ func SetupLogDefault() {
 	var lc LogConfig
 	lc.Level = "DEBUG"
 	lc.CW = ConfConsoleWriter{
-		On:    true,
-		Color: true,
+		On:  true,
+		Fmt: FmtTypeRaw,
 	}
 	SetupLogWithConf(lc)
 }
@@ -48,7 +49,6 @@ func SetupLogWithConfFile(file string) (err error) {
 
 }
 func SetupLogWithConf(lc LogConfig) (err error) {
-
 	if lc.FW.On {
 		if len(lc.FW.LogPath) > 0 {
 			w := NewFileWriter()
@@ -60,6 +60,7 @@ func SetupLogWithConf(lc LogConfig) (err error) {
 			} else {
 				w.SetLogLevelCeil(FATAL)
 			}
+			w.SetFmt(lc.FW.Fmt)
 			Register(w)
 		}
 
@@ -69,6 +70,7 @@ func SetupLogWithConf(lc LogConfig) (err error) {
 			wfw.SetPathPattern(lc.FW.RotateWfLogPath)
 			wfw.SetLogLevelFloor(WARNING)
 			wfw.SetLogLevelCeil(FATAL)
+			wfw.SetFmt(lc.FW.Fmt)
 			Register(wfw)
 		}
 
@@ -78,13 +80,14 @@ func SetupLogWithConf(lc LogConfig) (err error) {
 			wfp.SetPathPattern(lc.FW.RotatePublicLogPath)
 			wfp.SetLogLevelFloor(PUBLIC)
 			wfp.SetLogLevelCeil(PUBLIC)
+			wfp.SetFmt(lc.FW.Fmt)
 			Register(wfp)
 		}
 	}
 
 	if lc.CW.On {
 		w := NewConsoleWriter()
-		w.SetColor(lc.CW.Color)
+		w.SetFmt(lc.CW.Fmt)
 		Register(w)
 	}
 
