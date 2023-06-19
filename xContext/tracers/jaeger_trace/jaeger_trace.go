@@ -52,7 +52,7 @@ func GetCloser() io.Closer {
 	return closer
 }
 
-func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Tracer, io.Closer, error) {
+func NewJaegerTrace(jConf *JaegerConfig, options ...jaegercfg.Option) (opentracing.Tracer, io.Closer, error) {
 	once := sync.Once{}
 	var err error
 	once.Do(func() {
@@ -80,14 +80,9 @@ func NewJaegerTrace(jConf *JaegerConfig, logger jaeger.Logger) (opentracing.Trac
 		// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log
 		// and github.com/uber/jaeger-lib/metrics respectively to bind to real logging and metrics
 		// frameworks.
-		var jLogger jaeger.Logger = jaeger.NullLogger
-		if logger != nil {
-			jLogger = logger
-		}
+
 		// Initialize tracer with a logger and a metrics factory
-		tracer, closer, err = cfg.NewTracer(
-			jaegercfg.Logger(jLogger),
-		)
+		tracer, closer, err = cfg.NewTracer(options...)
 	})
 	return tracer, closer, err
 }
