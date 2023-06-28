@@ -215,6 +215,10 @@ func (l *Logger) SetFmtColor() {
 	l.FormatType = FmtTypeColorRaw
 }
 
+func (l *Logger) SetFmt(fmtType FmtType) {
+	l.FormatType = fmtType
+}
+
 func (l *Logger) SetLayout(layout string) {
 	l.layout = layout
 }

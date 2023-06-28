@@ -122,7 +122,7 @@ func (w *FileWriter) CreateLogFile() error {
 }
 
 func (w *FileWriter) Fmt() FmtType {
-	return FmtTypeRaw
+	return w.fmt
 }
 
 func (w *FileWriter) SetFmt(fmt FmtType) {

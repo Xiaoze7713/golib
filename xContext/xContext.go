@@ -209,7 +209,7 @@ func Init(logger xlog_base.LoggerIF,
 	serializeFunc = serializeF
 }
 
-type KVMType map[ContextKey]interface{}
+type KVMType map[any]interface{}
 
 func (m KVMType) ToAnyArgs() []interface{} {
 	var args []interface{}
@@ -226,7 +226,7 @@ func (m KVMType) ToAnyArgsWithValues(args ...interface{}) []interface{} {
 	return args
 }
 
-func (x *XContext) ToAnyArgs(keys ...ContextKey) []interface{} {
+func (x *XContext) ToAnyArgs(keys ...any) []interface{} {
 	var args []interface{}
 	for _, k := range keys {
 		args = append(args, k, x.Value(k))
@@ -398,7 +398,7 @@ type ContextKey interface {
 	string | ext.StringTagName | any
 }
 
-func (x *XContext) SetKV(key ContextKey, value interface{}) {
+func (x *XContext) SetKV(key any, value interface{}) {
 	x.Context = context.WithValue(x.Context, key, value)
 }
 
@@ -430,7 +430,7 @@ func (x *XContext) LoadString(key any) string {
 	return fmt.Sprintf("%v", x.Load(key))
 }
 
-func (x *XContext) Keys2KVMap(keys ...ContextKey) KVMType {
+func (x *XContext) Keys2KVMap(keys ...any) KVMType {
 	kvMap := KVMType{}
 	for _, key := range keys {
 		val := x.LoadString(key)
