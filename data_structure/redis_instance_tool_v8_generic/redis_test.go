@@ -12,6 +12,25 @@ import (
 	"time"
 )
 
+func easyCli(env string) (c redis.Cmdable) {
+	if env == "dev" || env == "test" {
+		c = redis.NewClient(&redis.Options{
+			Addr:     "39.99.156.201:6379",
+			Password: "",
+			DB:       0,
+		})
+		return
+	} else if env == "local" {
+		c = redis.NewClient(&redis.Options{
+			Addr:     "127.0.0.1:6379",
+			Password: "",
+			DB:       0,
+		})
+		return
+	}
+	return nil
+}
+
 func TestTable(t *testing.T) {
 	xlog.SetupLogDefault()
 	cli := redis.NewClient(&redis.Options{
@@ -228,4 +247,73 @@ func TestNewQueue(t *testing.T) {
 		}
 	}()
 	wg.Wait()
+}
+
+type TestData struct {
+	ID      int    `json:"id"`
+	RandStr string `json:"rand_str"`
+}
+
+func TestKeySet(t *testing.T) {
+	cli := easyCli("local")
+	xlog.SetupLogDefault()
+	defer xlog.Close()
+	defer time.Sleep(time.Second * 3)
+	keySet, _ := NewKeySet[string, *TestData]("test", "-", cli)
+	uuid := "user10"
+	ctx := context.Background()
+	cnt, err := keySet.Count(ctx, uuid)
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	dataList := []*TestData{}
+	xlog.Infof("cnt %v", cnt)
+	for i := 0; i < 5; i++ {
+		newData := &TestData{
+			ID:      i,
+			RandStr: fmt.Sprintf("%v", i),
+		}
+		err = keySet.Add(ctx, uuid, newData)
+		if err != nil {
+			xlog.Error(err)
+			return
+		}
+		dataList = append(dataList, newData)
+	}
+	cnt, err = keySet.Count(ctx, uuid)
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	xlog.Infof("cnt %v", cnt)
+	err = keySet.DelMembers(ctx, uuid, dataList[3])
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	cnt, err = keySet.Count(ctx, uuid)
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	xlog.Infof("cnt %v", cnt)
+	ok, err := keySet.ExistMember(ctx, uuid, dataList[1])
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	xlog.Infof("exist %v", ok)
+	ok, err = keySet.ExistMember(ctx, uuid, dataList[3])
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	xlog.Infof("exist %v", ok)
+	newList, err := keySet.GetAndUnmarshalMembers(ctx, uuid)
+	if err != nil {
+		xlog.Error(err)
+		return
+	}
+	xlog.Infof("members %v", utils.MustJson(newList))
 }

@@ -50,8 +50,7 @@ func TestLog(t *testing.T) {
 			RotateWfLogPath: "/Users/cangxiaoze/user/git/logxx/chat-api.log.wf-%Y%M%D",
 		},
 		CW: xlog.ConfConsoleWriter{
-			On:    true,
-			Color: true,
+			On: true,
 		},
 	}
 	xlog.SetupLogWithConf(lc)

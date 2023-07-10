@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"sync"
 )
 
@@ -64,10 +65,38 @@ func RespBodySkip(path string) bool {
 	return ok
 }
 
-func DoWsConn() gin.HandlerFunc {
+type GinCtx2XCtx func(gc *gin.Context, ctx *XContext)
+
+const (
+	HeaderDevice  = "device"
+	HeaderUA      = "User-Agent"
+	HeaderTraceID = "trace_id"
+)
+
+func NormalHeader(headers ...string) (gc2xc GinCtx2XCtx) {
+	return func(gc *gin.Context, ctx *XContext) {
+		for _, h := range headers {
+			val := gc.GetHeader(h)
+			ctx.SetKV(h, val)
+		}
+	}
+}
+
+func ParseTraceID(tid string) string {
+	traceID := tid
+	if len(strings.Split(traceID, ":")) == 1 {
+		traceID = strings.Join([]string{traceID, "0", "0", "0"}, ":")
+	}
+	return traceID
+}
+
+func DoWsConn(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		traceID := gc.GetHeader("trace_id")
+		traceID := ParseTraceID(gc.GetHeader("trace_id"))
 		ctx := NewXContextWithContextString(gc, "request", traceID)
+		for _, gc2xc := range gc2xcList {
+			gc2xc(gc, ctx)
+		}
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
@@ -130,10 +159,13 @@ func DoWsConn() gin.HandlerFunc {
 	}
 }
 
-func DoRequest() gin.HandlerFunc {
+func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		traceID := gc.GetHeader("trace_id")
+		traceID := ParseTraceID(gc.GetHeader("trace_id"))
 		ctx := NewXContextWithContextString(gc, "request", traceID)
+		for _, gc2xc := range gc2xcList {
+			gc2xc(gc, ctx)
+		}
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
@@ -198,8 +230,11 @@ func DoRequest() gin.HandlerFunc {
 
 func HttpIntercept(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		traceID := r.Header.Get("trace_id")
+		traceID := ParseTraceID(r.Header.Get("trace_id"))
 		ctx := NewXContextWithContextString(r.Context(), "request", traceID)
+		//for _, gc2xc := range gc2xcList {
+		//	gc2xc(gc, ctx)
+		//}
 		defer func() {
 			ctx.Fin()
 			ctx.SetKV(CostMs, ctx.Duration().Milliseconds())
