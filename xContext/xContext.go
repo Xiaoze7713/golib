@@ -259,14 +259,17 @@ func (x *XContext) OperationName() string {
 var notGrandFather = errors.New("not grand father")
 
 func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XContext, error) {
-	gCtx := ctx.Value("xContext")
-	xCtx, ok := gCtx.(*XContext)
-	if !ok {
-		mLogger.Error(nil, notGrandFather)
-		xCtx = NewXContextWithContext(ctx, operationName)
-		return xCtx, nil
+	xCtxVal := ctx.Value("xContext")
+	if xCtxVal != nil {
+		xCtx, ok := xCtxVal.(*XContext)
+		if ok {
+			return xCtx, nil
+		}
 	}
-	return xCtx.CopyWithContext(ctx), nil
+	mLogger.Error(nil, notGrandFather)
+	xCtx := NewXContextWithContext(ctx, operationName)
+	return xCtx, nil
+	//return xCtx.CopyWithContext(ctx), nil
 }
 
 func (x *XContext) CopyWithContext(ctx context.Context) *XContext {

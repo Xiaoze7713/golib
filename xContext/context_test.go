@@ -63,3 +63,17 @@ func TestLog(t *testing.T) {
 	ctx.Info("你好", "hello")
 	time.Sleep(time.Second * 3)
 }
+
+func TestValue(t *testing.T) {
+	InitByNullOpt()
+	xlog.GetLogger().SetFmtColor()
+	defer xlog.Close()
+	defer time.Sleep(time.Second * 3)
+	ctx := NewXContext("xx")
+	ctx.SetKV("a", "10")
+	ctx.SetKV("b", "11")
+	cctx := NewChildXContext(ctx, "xxxx")
+	val := cctx.LoadString("a")
+	cctx.Info(val)
+	cctx.Info("?????")
+}

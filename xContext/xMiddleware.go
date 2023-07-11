@@ -68,7 +68,7 @@ func RespBodySkip(path string) bool {
 type GinCtx2XCtx func(gc *gin.Context, ctx *XContext)
 
 const (
-	HeaderDevice  = "device"
+	HeaderDevice  = "Device"
 	HeaderUA      = "User-Agent"
 	HeaderTraceID = "trace_id"
 )
