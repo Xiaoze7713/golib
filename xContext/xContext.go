@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"github.com/opentracing/opentracing-go"
+	"reflect"
 	"strings"
 	"time"
 
@@ -224,6 +225,18 @@ func (m KVMType) ToAnyArgsWithValues(args ...interface{}) []interface{} {
 		args = append(args, k, v)
 	}
 	return args
+}
+
+func (m KVMType) ToStrKV() map[string]interface{} {
+	resMap := make(map[string]interface{})
+	for k, v := range m {
+		if reflect.TypeOf(k).Kind() == reflect.Pointer {
+			resMap[fmt.Sprintf("%+v", k)] = v
+		} else {
+			resMap[fmt.Sprintf("%v", k)] = v
+		}
+	}
+	return resMap
 }
 
 func (x *XContext) ToAnyArgs(keys ...any) []interface{} {

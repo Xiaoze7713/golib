@@ -6,8 +6,25 @@ const (
 )
 
 func (x *XContext) InfoKV(kvm KVMType) {
-	x.LogFields(kvm.ToAnyArgs()...)
-	x.LoggerIF.Info(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, x.KVsFormats(kvm))
+	//x.LogFields(kvm.ToAnyArgs()...)
+	x.LoggerIF.InfoKV(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, kvm.ToStrKV())
+}
+func (x *XContext) ErrorKV(kvm KVMType) {
+	//x.LogFields(kvm.ToAnyArgs()...)
+	x.LoggerIF.ErrorKV(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, kvm.ToStrKV())
+}
+func (x *XContext) DebugKV(kvm KVMType) {
+	//x.LogFields(kvm.ToAnyArgs()...)
+	x.LoggerIF.DebugKV(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, kvm.ToStrKV())
+}
+func (x *XContext) FatalKV(kvm KVMType) {
+	//x.LogFields(kvm.ToAnyArgs()...)
+	x.LoggerIF.FatalKV(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, kvm.ToStrKV())
+}
+
+func (x *XContext) WarnKV(kvm KVMType) {
+	//x.LogFields(kvm.ToAnyArgs()...)
+	x.LoggerIF.WarnKV(map[string]interface{}{LogFieldTraceID: x.TraceID().String(), LogFieldSpanID: x.SpanID().String()}, kvm.ToStrKV())
 }
 
 func (x *XContext) Info(args ...interface{}) {

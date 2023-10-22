@@ -60,7 +60,7 @@ func TestLog(t *testing.T) {
 	ctx := NewXContext("test")
 	ctx.Info("你好", "hello")
 	//xlog.GetLogger().SetFmtRaw()
-	ctx.Info("你好", "hello")
+	ctx.InfoKV(map[any]interface{}{"cn": "你好", "en": "hello"})
 	time.Sleep(time.Second * 3)
 }
 
@@ -76,4 +76,6 @@ func TestValue(t *testing.T) {
 	val := cctx.LoadString("a")
 	cctx.Info(val)
 	cctx.Info("?????")
+	cctx.InfoKV(KVMType{"cn": "你好", "en": "hello"})
+
 }
