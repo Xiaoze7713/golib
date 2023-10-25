@@ -17,14 +17,14 @@ type KeyPoolV2[K type_def.BaseValueType, V any] struct {
 	expire int // second
 }
 
-func NewKeyPoolV2[K type_def.BaseValueType, V any](businessKey, sep string, client redis.Cmdable, nx bool, duration int) (keyPool *KeyPool[K, V], err error) {
+func NewKeyPoolV2[K type_def.BaseValueType, V any](businessKey, sep string, client redis.Cmdable, nx bool, duration int) (keyPool *KeyPoolV2[K, V], err error) {
 	if businessKey == "" {
 		xlog.Warn("key pool null business key")
 	}
 	if client == nil {
 		err = errors.New("redis pool is nil")
 	}
-	keyPool = &KeyPool[K, V]{
+	keyPool = &KeyPoolV2[K, V]{
 		RedisToolBase{
 			client:  client,
 			selfKey: businessKey,
