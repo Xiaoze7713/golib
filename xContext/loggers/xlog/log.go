@@ -276,36 +276,36 @@ func (l *Logger) Public(specialKV map[string]interface{}, args ...interface{}) {
 }
 
 func (l *Logger) TraceKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(TRACE, specialKV, kvFields)
+	l.deliverKVRecordToWriter(TRACE, specialKV, kvFields)
 }
 
 func (l *Logger) DebugKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(DEBUG, specialKV, kvFields)
+	l.deliverKVRecordToWriter(DEBUG, specialKV, kvFields)
 
 }
 
 func (l *Logger) WarnKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(WARNING, specialKV, kvFields)
+	l.deliverKVRecordToWriter(WARNING, specialKV, kvFields)
 
 }
 
 func (l *Logger) InfoKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(INFO, specialKV, kvFields)
+	l.deliverKVRecordToWriter(INFO, specialKV, kvFields)
 
 }
 
 func (l *Logger) ErrorKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(ERROR, specialKV, kvFields)
+	l.deliverKVRecordToWriter(ERROR, specialKV, kvFields)
 
 }
 
 func (l *Logger) FatalKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(FATAL, specialKV, kvFields)
+	l.deliverKVRecordToWriter(FATAL, specialKV, kvFields)
 
 }
 
 func (l *Logger) PublicKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
-	loggerDefault.deliverKVRecordToWriter(PUBLIC, specialKV, kvFields)
+	l.deliverKVRecordToWriter(PUBLIC, specialKV, kvFields)
 
 }
 
@@ -394,11 +394,23 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 	if len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
 		r.code = l.CodeLine(5)
 	}
-	if traceID, ok := specialKV["trace_id"]; ok {
+	traceID, ok := specialKV["trace_id"]
+	if ok {
 		r.traceID = traceID
+	} else {
+		traceID, ok = kvFields["trace_id"]
+		if ok && traceID != nil {
+			r.traceID = traceID
+		}
 	}
-	if spanID, ok := specialKV["span_id"]; ok {
+	spanID, ok := specialKV["span_id"]
+	if ok {
 		r.spanID = spanID
+	} else {
+		spanID, ok = kvFields["span_id"]
+		if ok && spanID != nil {
+			r.spanID = spanID
+		}
 	}
 	//for i := 0; i < 6; i++ {
 	//	fmt.Println(l.CodeLine(i))
