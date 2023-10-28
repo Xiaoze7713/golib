@@ -49,6 +49,19 @@ type Record struct {
 	FmtType   FmtType
 }
 
+func (m *Record) Flush() {
+	m.time = ""
+	m.code = ""
+	m.traceID = ""
+	m.spanID = ""
+	m.specialKV = nil
+	m.kvMap = nil
+	m.argFields = nil
+	m.content = ""
+	m.level = 0
+	m.FmtType = 0
+}
+
 type JsonFmt struct {
 	Time      string                 `json:"time"`
 	Code      string                 `json:"code"`
@@ -361,6 +374,7 @@ func (l *Logger) deliverRecordToWriter(level int, specialKV map[string]interface
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
+	r.Flush()
 	r.FmtType = l.FormatType
 	if spanID, ok := specialKV["span_id"]; ok {
 		r.spanID = spanID
@@ -398,6 +412,7 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 		l.lastTimeStr = now.Format(l.layout)
 	}
 	r := recordPool.Get().(*Record)
+	r.Flush()
 	r.FmtType = l.FormatType
 	r.code = l.CodeLine(3)
 	traceID, ok := specialKV["trace_id"]
