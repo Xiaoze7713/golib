@@ -388,10 +388,10 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 	r := recordPool.Get().(*Record)
 	r.FmtType = l.FormatType
 	r.code = l.CodeLine(3)
-	if len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
+	if l.skipStr != "" && len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
 		r.code = l.CodeLine(4)
 	}
-	if len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
+	if l.skipStr2 != "" && len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
 		r.code = l.CodeLine(5)
 	}
 	traceID, ok := specialKV["trace_id"]
