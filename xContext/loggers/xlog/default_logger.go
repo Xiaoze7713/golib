@@ -20,32 +20,37 @@ func SetLayout(layout string) {
 	loggerDefault.layout = layout
 }
 
-func TraceKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(TRACE, nil, fmt, args...)
+func TraceKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(TRACE, specialKV, kvFields)
 }
 
-func DebugKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(DEBUG, nil, fmt, args...)
+func DebugKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(DEBUG, specialKV, kvFields)
 }
 
-func WarnKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(WARNING, nil, fmt, args...)
+func WarnKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(WARNING, specialKV, kvFields)
+
 }
 
-func InfoKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(INFO, nil, fmt, args...)
+func InfoKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(INFO, specialKV, kvFields)
+
 }
 
-func ErrorKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(ERROR, nil, fmt, args...)
+func ErrorKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(ERROR, specialKV, kvFields)
+
 }
 
-func FatalKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(FATAL, nil, fmt, args...)
+func FatalKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(FATAL, specialKV, kvFields)
+
 }
 
-func PublicKV(fmt string, args ...interface{}) {
-	loggerDefault.deliverRecordToWriter(PUBLIC, nil, fmt, args...)
+func PublicKV(specialKV map[string]interface{}, kvFields map[string]interface{}) {
+	loggerDefault.deliverKVRecordToWriter(PUBLIC, specialKV, kvFields)
+
 }
 
 func Tracef(fmt string, args ...interface{}) {

@@ -77,5 +77,6 @@ func TestValue(t *testing.T) {
 	cctx.Info(val)
 	cctx.Info("?????")
 	cctx.InfoKV(KVMType{"cn": "你好", "en": "hello"})
+	xlog.InfoKV(nil, map[string]interface{}{"cn": "你好", "en": "hello"})
 
 }

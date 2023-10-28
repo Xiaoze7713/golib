@@ -2,6 +2,7 @@ package xlog
 
 import (
 	"fmt"
+	"git.singularity-ai.com/backend/library/v2/utils"
 	jsoniter "github.com/json-iterator/go"
 	"log"
 	"path"
@@ -74,13 +75,16 @@ func (r *Record) String() string {
 
 func (r *Record) RawString() string {
 	content := r.content
-	if r.spanID != "" {
+	if r.kvMap != nil {
+		content = fmt.Sprintf("%v", utils.MustJson(r.kvMap))
+	}
+	if r.spanID != nil && r.spanID != "" {
 		content = fmt.Sprintf("[span_id:%v]", r.spanID) + content
 	}
-	if r.traceID != "" {
+	if r.traceID != nil && r.traceID != "" {
 		content = fmt.Sprintf("[trace_id:%v]", r.traceID) + content
 	}
-	return fmt.Sprintf("[%s][%s][%s] %s\n", r.time, LevelFlags[r.level], r.code, r.content)
+	return fmt.Sprintf("[%s][%s][%s] %s\n", r.time, LevelFlags[r.level], r.code, content)
 }
 
 func (r *Record) JsonString() string {
@@ -112,6 +116,9 @@ func (r *Record) JsonString() string {
 
 func (r *Record) ColorString() string {
 	content := r.content
+	if r.kvMap != nil {
+		content = fmt.Sprintf("[kv:%+v]", r.kvMap) + content
+	}
 	if r.spanID != nil {
 		content = fmt.Sprintf("[span_id:%v]", r.spanID) + content
 	}
@@ -324,6 +331,17 @@ func (l *Logger) Close() {
 
 func (l *Logger) CodeLine(skip int) string {
 	_, file, line, ok := runtime.Caller(skip)
+	//fmt.Println(file, l.skipStr, l.skipStr2)
+	if ok {
+		if l.skipStr != "" && l.skipStr == path.Base(file) {
+			_, file, line, ok = runtime.Caller(skip + 1)
+			if ok {
+				if l.skipStr2 != "" && l.skipStr2 == path.Base(file) {
+					_, file, line, ok = runtime.Caller(skip + 2)
+				}
+			}
+		}
+	}
 	if ok {
 		return path.Base(file) + ":" + strconv.Itoa(line)
 	}
@@ -359,12 +377,6 @@ func (l *Logger) deliverRecordToWriter(level int, specialKV map[string]interface
 	}
 
 	r.code = l.CodeLine(3)
-	if l.skipStr != "" && len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
-		r.code = l.CodeLine(4)
-	}
-	if l.skipStr2 != "" && len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
-		r.code = l.CodeLine(5)
-	}
 	//for i := 0; i < 6; i++ {
 	//	fmt.Println(l.CodeLine(i))
 	//}
@@ -388,12 +400,6 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 	r := recordPool.Get().(*Record)
 	r.FmtType = l.FormatType
 	r.code = l.CodeLine(3)
-	if l.skipStr != "" && len(l.skipStr) <= len(r.code) && r.code[:len(l.skipStr)] == l.skipStr {
-		r.code = l.CodeLine(4)
-	}
-	if l.skipStr2 != "" && len(l.skipStr2) <= len(r.code) && r.code[:len(l.skipStr2)] == l.skipStr2 {
-		r.code = l.CodeLine(5)
-	}
 	traceID, ok := specialKV["trace_id"]
 	if ok {
 		r.traceID = traceID
@@ -417,10 +423,10 @@ func (l *Logger) deliverKVRecordToWriter(level int, specialKV map[string]interfa
 	//}
 	r.time = l.lastTimeStr
 	r.level = level
+	//fmt.Println(kvFields)
 	if len(kvFields) > 0 {
 		r.kvMap = kvFields
 	}
-
 	l.tunnel <- r
 }
 
