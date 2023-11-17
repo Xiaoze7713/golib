@@ -37,13 +37,13 @@ func (m *Consumer) eventListen(handleFunc func(message *kafka.Message)) (err err
 		case e := <-m.c.Events():
 			switch ev := e.(type) {
 			case kafka.AssignedPartitions:
-				err := m.c.Assign(ev.Partitions)
+				err = m.c.Assign(ev.Partitions)
 				if err != nil {
 					xlog.Infof("kafka[%v] event listen err %v", utils.MustJson(m.conf), err)
 					return
 				}
 			case kafka.RevokedPartitions:
-				err := m.c.Unassign()
+				err = m.c.Unassign()
 				if err != nil {
 					xlog.Infof("kafka[%v] event listen err %v", utils.MustJson(m.conf), err)
 					return
