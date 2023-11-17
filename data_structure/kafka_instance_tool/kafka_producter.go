@@ -4,7 +4,6 @@ import (
 	"context"
 	"git.singularity-ai.com/backend/library/v2/data_structure/message_queue"
 	"git.singularity-ai.com/backend/library/v2/kafka"
-	json "github.com/json-iterator/go"
 )
 
 type KafkaProducer struct {
@@ -16,16 +15,12 @@ func (m *KafkaProducer) Name() string {
 	return m.config.Topic
 }
 
-func (m *KafkaProducer) Push(ctx context.Context, i interface{}) error {
-	msg, err := json.MarshalToString(i)
-	if err != nil {
-		return err
-	}
-	m.ProduceChan <- []byte(msg)
+func (m *KafkaProducer) Push(ctx context.Context, data []byte) error {
+	m.ProduceChan <- data
 	return nil
 }
 
-func (m *KafkaProducer) Pop(ctx context.Context, block bool) (i interface{}, err error) {
+func (m *KafkaProducer) Pop(ctx context.Context, block bool) (data []byte, err error) {
 	return nil, nil
 }
 

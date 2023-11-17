@@ -2,8 +2,8 @@ package kafka_instance_tool
 
 import (
 	"context"
+	"git.singularity-ai.com/backend/library/v2/data_structure/kafka"
 	"git.singularity-ai.com/backend/library/v2/data_structure/message_queue"
-	"git.singularity-ai.com/backend/library/v2/kafka"
 )
 
 type KafkaConsumer struct {
@@ -15,13 +15,13 @@ func (m *KafkaConsumer) Name() string {
 	return m.config.Topic
 }
 
-func (m *KafkaConsumer) Push(ctx context.Context, i interface{}) error {
+func (m *KafkaConsumer) Push(ctx context.Context, data []byte) error {
 	return nil
 }
 
-func (m *KafkaConsumer) Pop(ctx context.Context, block bool) (i interface{}, err error) {
+func (m *KafkaConsumer) Pop(ctx context.Context, block bool) (data []byte, err error) {
 	kafkaData := <-m.ConsumeChan
-	return string(kafkaData.Value), nil
+	return kafkaData.Value, nil
 }
 
 func (m *KafkaConsumer) Init(config *message_queue.MQConfig) (err error) {
