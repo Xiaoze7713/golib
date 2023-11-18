@@ -156,7 +156,7 @@ func NewKafkaProducer(cfg *Config) (p *kafka.Producer, err error) {
 		kafkaconf.SetKey("security.protocol", "plaintext")
 	case "sasl_ssl":
 		kafkaconf.SetKey("security.protocol", "sasl_ssl")
-		kafkaconf.SetKey("ssl.ca.location", "conf/ca-cert.pem")
+		kafkaconf.SetKey("ssl.ca.location", cfg.SslCaLocation)
 		kafkaconf.SetKey("sasl.username", cfg.SaslUsername)
 		kafkaconf.SetKey("sasl.password", cfg.SaslPassword)
 		kafkaconf.SetKey("sasl.mechanism", cfg.SaslMechanism)
