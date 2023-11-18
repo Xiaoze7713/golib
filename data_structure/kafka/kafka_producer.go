@@ -9,18 +9,6 @@ import (
 	"sync"
 )
 
-type Config struct {
-	Name             string `toml:"name" json:"name"`
-	Broker           string `toml:"broker" json:"broker"`
-	Topic            string `toml:"topic" json:"topic"`
-	Group            string `toml:"group" json:"group"`
-	SecurityProtocol string `json:"security.protocol"`
-	SslCaLocation    string `json:"ssl.ca.location"`
-	SaslMechanism    string `json:"sasl.mechanism"`
-	SaslUsername     string `json:"sasl.username"`
-	SaslPassword     string `json:"sasl.password"`
-}
-
 type Producer struct {
 	ProduceChan chan []byte
 	ErrChan     chan error
