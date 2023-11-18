@@ -11,10 +11,15 @@ import (
 )
 
 type Config struct {
-	Name   string `toml:"name" json:"name"`
-	Broker string `toml:"broker" json:"broker"`
-	Topic  string `toml:"topic" json:"topic"`
-	Group  string `toml:"group" json:"group"`
+	Name             string `toml:"name" json:"name"`
+	Broker           string `toml:"broker" json:"broker"`
+	Topic            string `toml:"topic" json:"topic"`
+	Group            string `toml:"group" json:"group"`
+	SecurityProtocol string `json:"security.protocol"`
+	SslCaLocation    string `json:"ssl.ca.location"`
+	SaslMechanism    string `json:"sasl.mechanism"`
+	SaslUsername     string `json:"sasl.username"`
+	SaslPassword     string `json:"sasl.password"`
 }
 
 type Producer struct {
@@ -122,7 +127,7 @@ func NewProducer(ctx context.Context, config *Config) (producer *Producer, err e
 	producer.w = &sync.WaitGroup{}
 	producer.conf = config
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": producer.conf.Broker})
+	p, err := NewKafkaProducer(config)
 	if err != nil {
 		log.Errorf("NewProducer failed, err:%v", err)
 		return nil, err
@@ -134,4 +139,41 @@ func NewProducer(ctx context.Context, config *Config) (producer *Producer, err e
 func (p *Producer) SendMsg(msgByte []byte) error {
 	p.ProduceChan <- msgByte
 	return nil
+}
+
+func NewKafkaProducer(cfg *Config) (p *kafka.Producer, err error) {
+	var kafkaconf = &kafka.ConfigMap{
+		"api.version.request": "true",
+		"message.max.bytes":   1000000,
+		"linger.ms":           10,
+		"retries":             30,
+		"retry.backoff.ms":    1000,
+		"acks":                "1"}
+	kafkaconf.SetKey("bootstrap.servers", cfg.Broker)
+
+	switch cfg.SecurityProtocol {
+	case "plaintext":
+		kafkaconf.SetKey("security.protocol", "plaintext")
+	case "sasl_ssl":
+		kafkaconf.SetKey("security.protocol", "sasl_ssl")
+		kafkaconf.SetKey("ssl.ca.location", "conf/ca-cert.pem")
+		kafkaconf.SetKey("sasl.username", cfg.SaslUsername)
+		kafkaconf.SetKey("sasl.password", cfg.SaslPassword)
+		kafkaconf.SetKey("sasl.mechanism", cfg.SaslMechanism)
+	case "sasl_plaintext":
+		kafkaconf.SetKey("sasl.mechanism", "PLAIN")
+		kafkaconf.SetKey("security.protocol", "sasl_plaintext")
+		kafkaconf.SetKey("sasl.username", cfg.SaslUsername)
+		kafkaconf.SetKey("sasl.password", cfg.SaslPassword)
+		kafkaconf.SetKey("sasl.mechanism", cfg.SaslMechanism)
+	default:
+		err = kafka.NewError(kafka.ErrUnknownProtocol, "unknown protocol", true)
+		return nil, err
+	}
+
+	producer, err := kafka.NewProducer(kafkaconf)
+	if err != nil {
+		return nil, err
+	}
+	return producer, nil
 }

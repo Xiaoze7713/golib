@@ -86,19 +86,54 @@ func NewConsumer(ctx context.Context, config *Config) (consumer *Consumer, err e
 	consumer.w = &sync.WaitGroup{}
 	consumer.conf = config
 
-	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":               consumer.conf.Broker,
-		"group.id":                        consumer.conf.Group,
-		"go.events.channel.enable":        true,
-		"go.application.rebalance.enable": true,
-		//"auto.offset.reset":               "earliest",
-	})
-
+	c, err := NewKafkaConsumer(config)
 	if err != nil {
 		xlog.Errorf("NewConsumer failed, err:%v", err)
 		return nil, err
 	}
 
 	consumer.c = c
+	return consumer, nil
+}
+
+func NewKafkaConsumer(cfg *Config) (c *kafka.Consumer, err error) {
+	var kafkaconf = &kafka.ConfigMap{
+		"api.version.request":             "true",
+		"auto.offset.reset":               "latest",
+		"heartbeat.interval.ms":           3000,
+		"session.timeout.ms":              30000,
+		"max.poll.interval.ms":            120000,
+		"fetch.max.bytes":                 1024000,
+		"max.partition.fetch.bytes":       256000,
+		"go.events.channel.enable":        true,
+		"go.application.rebalance.enable": true,
+	}
+	kafkaconf.SetKey("bootstrap.servers", cfg.Broker)
+	kafkaconf.SetKey("group.id", cfg.Group)
+
+	switch cfg.SecurityProtocol {
+	case "plaintext":
+		kafkaconf.SetKey("security.protocol", "plaintext")
+	case "sasl_ssl":
+		kafkaconf.SetKey("security.protocol", "sasl_ssl")
+		kafkaconf.SetKey("ssl.ca.location", "./conf/ca-cert.pem")
+		kafkaconf.SetKey("sasl.username", cfg.SaslUsername)
+		kafkaconf.SetKey("sasl.password", cfg.SaslPassword)
+		kafkaconf.SetKey("sasl.mechanism", cfg.SaslMechanism)
+	case "sasl_plaintext":
+		kafkaconf.SetKey("security.protocol", "sasl_plaintext")
+		kafkaconf.SetKey("sasl.username", cfg.SaslUsername)
+		kafkaconf.SetKey("sasl.password", cfg.SaslPassword)
+		kafkaconf.SetKey("sasl.mechanism", cfg.SaslMechanism)
+
+	default:
+		err = kafka.NewError(kafka.ErrUnknownProtocol, "unknown protocol", true)
+		return nil, err
+	}
+
+	consumer, err := kafka.NewConsumer(kafkaconf)
+	if err != nil {
+		return nil, err
+	}
 	return consumer, nil
 }
