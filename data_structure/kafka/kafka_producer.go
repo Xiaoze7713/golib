@@ -3,7 +3,6 @@ package kafka
 import (
 	"context"
 	"errors"
-	"git.singularity-ai.com/backend/library/v2/log"
 	"git.singularity-ai.com/backend/library/v2/utils"
 	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -129,7 +128,7 @@ func NewProducer(ctx context.Context, config *Config) (producer *Producer, err e
 
 	p, err := NewKafkaProducer(config)
 	if err != nil {
-		log.Errorf("NewProducer failed, err:%v", err)
+		xlog.Errorf("NewProducer failed, err:%v", err)
 		return nil, err
 	}
 	producer.p = p
