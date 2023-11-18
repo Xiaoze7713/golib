@@ -3,28 +3,31 @@ package kafka
 import (
 	"context"
 	"errors"
+	"git.singularity-ai.com/backend/library/v2/log"
 	"git.singularity-ai.com/backend/library/v2/utils"
 	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"sync"
 )
 
-type Consumer struct {
-	ConsumeChan chan *kafka.Message
+type Config struct {
+	Name   string `toml:"name" json:"name"`
+	Broker string `toml:"broker" json:"broker"`
+	Topic  string `toml:"topic" json:"topic"`
+	Group  string `toml:"group" json:"group"`
+}
+
+type Producer struct {
+	ProduceChan chan []byte
 	ErrChan     chan error
 	conf        *Config
 	ctxCancel   context.CancelFunc
 	ctx         context.Context
-	c           *kafka.Consumer
+	p           *kafka.Producer
 	w           *sync.WaitGroup
 }
 
-func (m *Consumer) eventListen(handleFunc func(message *kafka.Message)) (err error) {
-	err = m.c.Subscribe(m.conf.Topic, nil)
-	if err != nil {
-		xlog.Errorf("Subscribe failed, err:%v", err)
-		return err
-	}
+func (m *Producer) eventListen(handleFunc func(message *kafka.Message)) (err error) {
 	for {
 		select {
 		case <-m.ctx.Done():
@@ -34,71 +37,101 @@ func (m *Consumer) eventListen(handleFunc func(message *kafka.Message)) (err err
 				xlog.Infof("kafka[%v] event listen has timeout!", utils.MustJson(m.conf))
 			}
 			return
-		case e := <-m.c.Events():
+		case e := <-m.p.Events():
 			switch ev := e.(type) {
-			case kafka.AssignedPartitions:
-				err = m.c.Assign(ev.Partitions)
-				if err != nil {
-					xlog.Infof("kafka[%v] event listen err %v", utils.MustJson(m.conf), err)
-					return
-				}
-			case kafka.RevokedPartitions:
-				err = m.c.Unassign()
-				if err != nil {
-					xlog.Infof("kafka[%v] event listen err %v", utils.MustJson(m.conf), err)
-					return
-				}
 			case *kafka.Message:
-				m.ConsumeChan <- ev
-			case kafka.Error:
-				m.ErrChan <- ev
-			case kafka.OffsetsCommitted:
+				data := ev
+				if data != nil && handleFunc != nil {
+					handleFunc(data)
+				} else {
+					xlog.Errorf("kafka[%v] error msg %v", utils.MustJson(m.conf), utils.MustJson(data))
+				}
 			default:
-				xlog.Warnf("kafka[%v] event listen, unknown event %+v", e)
+				xlog.Warnf("kafka[%v] unknown msg %v", utils.MustJson(m.conf), utils.MustJson(e))
+			}
+		case err = <-m.ErrChan:
+			xlog.Error(err)
+		}
+	}
+}
+
+func (m *Producer) msgLoopProduct() (err error) {
+	for {
+		select {
+		case <-m.ctx.Done():
+			if errors.Is(m.ctx.Err(), context.Canceled) {
+				xlog.Infof("kafka[%v] ctx has cancel", utils.MustJson(m.conf))
+			} else {
+				xlog.Infof("kafka[%v] ctx has timeout", utils.MustJson(m.conf))
+			}
+			return
+		case value := <-m.ProduceChan:
+			err = m.p.Produce(&kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &m.conf.Topic, Partition: kafka.PartitionAny}, Value: value}, nil)
+			if err != nil {
+				xlog.Error(err)
+				//m.ErrChan <- err
 			}
 		}
 	}
 }
 
-func (m *Consumer) Run(errHandleFunc func(message *kafka.Message), msgHandler func(message *kafka.Message)) (err error) {
+func (m *Producer) Run(errHandleFunc func(message *kafka.Message)) (err error) {
 	m.w.Add(1)
 	go func() {
 		xlog.Infof("kafka[%v] event listen running", utils.MustJson(m.conf))
 		err = m.eventListen(errHandleFunc)
 		if err != nil {
-			xlog.Infof("kafka[%v] event listen running", utils.MustJson(m.conf))
+			xlog.Errorf("kafka[%v] event listen error %v", utils.MustJson(m.conf), err)
 			return
 		}
 		m.w.Done()
 	}()
-	return
+	m.w.Add(1)
+	go func() {
+		xlog.Infof("kafka[%v] msg listen running", utils.MustJson(m.conf))
+		err = m.msgLoopProduct()
+		if err != nil {
+			xlog.Errorf("kafka[%v] msg listen error %v", utils.MustJson(m.conf), err)
+			return
+		}
+		m.w.Done()
+	}()
+	return err
 }
 
-func NewConsumer(ctx context.Context, config *Config) (consumer *Consumer, err error) {
-	// 如果group为空则默认
-	if config.Group == "" {
-		config.Group = "default"
-		xlog.Warnf("consumer group use %v", config.Group)
-	}
-	consumer.ConsumeChan = make(chan *kafka.Message, 1024*8)
-	consumer.ErrChan = make(chan error, 1024*8)
-	consumer.ctx, consumer.ctxCancel = context.WithCancel(context.Background())
-	consumer.w = &sync.WaitGroup{}
-	consumer.conf = config
+func (m *Producer) Close() {
+	m.ctxCancel()
+	m.w.Wait()
+	close(m.ProduceChan)
+	close(m.ErrChan)
+	m.p.Close()
+}
 
-	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":               consumer.conf.Broker,
-		"group.id":                        consumer.conf.Group,
-		"go.events.channel.enable":        true,
-		"go.application.rebalance.enable": true,
-		//"auto.offset.reset":               "earliest",
-	})
+// Init
+//	配置文件格式示例：
+//	[event]
+//	name = "event"
+//	broker = "172.21.77.44:19092"
+//	topic = "event_service"
 
+func NewProducer(ctx context.Context, config *Config) (producer *Producer, err error) {
+	producer = &Producer{}
+	producer.ProduceChan = make(chan []byte, 1024*8)
+	producer.ErrChan = make(chan error, 1024*8)
+	producer.ctx, producer.ctxCancel = context.WithCancel(context.Background())
+	producer.w = &sync.WaitGroup{}
+	producer.conf = config
+
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": producer.conf.Broker})
 	if err != nil {
-		xlog.Errorf("NewConsumer failed, err:%v", err)
+		log.Errorf("NewProducer failed, err:%v", err)
 		return nil, err
 	}
+	producer.p = p
+	return producer, nil
+}
 
-	consumer.c = c
-	return consumer, nil
+func (p *Producer) SendMsg(msgByte []byte) error {
+	p.ProduceChan <- msgByte
+	return nil
 }
