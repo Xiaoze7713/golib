@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"git.singularity-ai.com/backend/library/v2/log"
 	"github.com/BurntSushi/toml"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"io/ioutil"
 	"os"
 	"sync"

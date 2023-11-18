@@ -6,7 +6,7 @@ import (
 	"git.singularity-ai.com/backend/library/v2/log"
 	"git.singularity-ai.com/backend/library/v2/utils"
 	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"sync"
 )
 
