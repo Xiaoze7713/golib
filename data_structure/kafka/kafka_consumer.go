@@ -41,7 +41,7 @@ func (m *Producer) eventListen(handleFunc func(message *kafka.Message)) (err err
 			switch ev := e.(type) {
 			case *kafka.Message:
 				data := ev
-				if data != nil {
+				if data != nil && handleFunc != nil {
 					handleFunc(data)
 				} else {
 					xlog.Errorf("kafka[%v] error msg %v", utils.MustJson(m.conf), utils.MustJson(data))
@@ -49,6 +49,8 @@ func (m *Producer) eventListen(handleFunc func(message *kafka.Message)) (err err
 			default:
 				xlog.Warnf("kafka[%v] unknown msg %v", utils.MustJson(m.conf), utils.MustJson(e))
 			}
+		case err = <-m.ErrChan:
+			xlog.Error(err)
 		}
 	}
 }
@@ -64,7 +66,11 @@ func (m *Producer) msgLoopProduct() (err error) {
 			}
 			return
 		case value := <-m.ProduceChan:
-			m.p.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &m.conf.Topic, Partition: kafka.PartitionAny}, Value: []byte(value)}
+			err = m.p.Produce(&kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &m.conf.Topic, Partition: kafka.PartitionAny}, Value: value}, nil)
+			if err != nil {
+				xlog.Error(err)
+				//m.ErrChan <- err
+			}
 		}
 	}
 }
