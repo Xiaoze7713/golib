@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"git.singularity-ai.com/backend/library/v2/xContext"
+	"github.com/Xiaoze7713/golib/v3/xContext"
 	"github.com/BurntSushi/toml"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"

@@ -1,7 +1,7 @@
 package trie_generic
 
 import (
-	"git.singularity-ai.com/backend/library/v2/utils"
+	"github.com/Xiaoze7713/golib/v3/utils"
 	"sort"
 	"unicode"
 )

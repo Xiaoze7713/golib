@@ -14,7 +14,7 @@ import (
 	"io"
 	"net/http"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
+	"github.com/Xiaoze7713/golib/v3/arch/web"
 )
 
 type ZhCn struct {

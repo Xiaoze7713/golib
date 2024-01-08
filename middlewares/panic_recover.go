@@ -11,10 +11,10 @@ import (
 	"os"
 	"runtime"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
-	"git.singularity-ai.com/backend/library/v2/common"
-	"git.singularity-ai.com/backend/library/v2/env"
-	"git.singularity-ai.com/backend/library/v2/service/robot"
+	"github.com/Xiaoze7713/golib/v3/arch/web"
+	"github.com/Xiaoze7713/golib/v3/common"
+	"github.com/Xiaoze7713/golib/v3/env"
+	"github.com/Xiaoze7713/golib/v3/service/robot"
 )
 
 const (

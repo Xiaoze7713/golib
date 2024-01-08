@@ -3,7 +3,7 @@ package redis_instance_tool
 import (
 	"context"
 	"errors"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/Xiaoze7713/golib/v3/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"time"
 )

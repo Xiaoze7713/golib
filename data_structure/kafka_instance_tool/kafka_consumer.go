@@ -2,8 +2,8 @@ package kafka_instance_tool
 
 import (
 	"context"
-	"git.singularity-ai.com/backend/library/v2/data_structure/kafka"
-	"git.singularity-ai.com/backend/library/v2/data_structure/message_queue"
+	"github.com/Xiaoze7713/golib/v3/data_structure/kafka"
+	"github.com/Xiaoze7713/golib/v3/data_structure/message_queue"
 )
 
 type KafkaConsumer struct {

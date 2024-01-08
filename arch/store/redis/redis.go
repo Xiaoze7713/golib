@@ -12,7 +12,7 @@ import (
 
 	rds "github.com/gomodule/redigo/redis"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
+	"github.com/Xiaoze7713/golib/v3/arch/web"
 )
 
 func Get(ctx *web.WebContext, key string) (string, error) {

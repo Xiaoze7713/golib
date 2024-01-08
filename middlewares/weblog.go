@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
-	"git.singularity-ai.com/backend/library/v2/env"
+	"github.com/Xiaoze7713/golib/v3/arch/web"
+	"github.com/Xiaoze7713/golib/v3/env"
 )
 
 func WebLogger() web.WebHandlerFunc {

@@ -15,7 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"git.singularity-ai.com/backend/library/v2/env"
+	"github.com/Xiaoze7713/golib/v3/env"
 )
 
 const (

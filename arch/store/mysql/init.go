@@ -16,7 +16,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
-	"git.singularity-ai.com/backend/library/v2/log"
+	"github.com/Xiaoze7713/golib/v3/log"
 )
 
 type ConfigItem struct {

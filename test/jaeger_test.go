@@ -1,7 +1,7 @@
 package test
 
 import (
-	"git.singularity-ai.com/backend/library/v2/xContext/tracers/jaeger_trace"
+	"github.com/Xiaoze7713/golib/v3/xContext/tracers/jaeger_trace"
 	"testing"
 )
 
