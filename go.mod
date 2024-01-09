@@ -1,4 +1,4 @@
-module golib/v3
+module github.com/Xiaoze7713/golib/v3
 
 go 1.18
 
@@ -16,7 +16,6 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/go-stack/stack v1.8.0
-	github.com/gomodule/redigo v1.8.8
 	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/olivere/elastic/v7 v7.0.32
@@ -30,7 +29,7 @@ require (
 	gorm.io/gorm v1.23.5
 )
 
-require github.com/Xiaoze7713/golib/v3 v3.0.0-00010101000000-000000000000
+require github.com/gomodule/redigo v1.8.9
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
