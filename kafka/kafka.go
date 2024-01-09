@@ -10,9 +10,10 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"github.com/Xiaoze7713/golib/v3/log"
 	"github.com/BurntSushi/toml"
+	"github.com/Xiaoze7713/golib/v3/xContext/loggers/xlog"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -55,12 +56,12 @@ func Init(filePath string) {
 		filePath = defaultKafkaConfigPath
 	}
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Infoln("kafka.toml not exist")
+		xlog.Info("kafka.toml not exist")
 		return
 	}
 	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Errorf("read kafka.toml failed,err=%s", err.Error())
+		xlog.Errorf("read kafka.toml failed,err=%s", err.Error())
 		return
 	}
 	var confStrRaw = string(bs)
@@ -216,7 +217,7 @@ func NewConsumer(broker, topic, group string) (Consumer, error) {
 				consumer.ErrChan <- e
 			case kafka.OffsetsCommitted:
 			default:
-				log.Printf("unknown event %+v", e)
+				xlog.Infof("unknown event %+v", e)
 			}
 		}
 		wg1.Done()

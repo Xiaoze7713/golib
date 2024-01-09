@@ -8,9 +8,10 @@
 package ali_oss
 
 import (
-	"github.com/Xiaoze7713/golib/v3/log"
 	"github.com/BurntSushi/toml"
+	"github.com/Xiaoze7713/golib/v3/xContext/loggers/xlog"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/prometheus/common/log"
 	"os"
 )
 
@@ -29,12 +30,12 @@ var client *oss.Client
 // Init 根据配置文件初始化
 func Init(configFile string) error {
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		log.Infoln("ali_oss conf file not exist")
+		xlog.Info("ali_oss conf file not exist")
 		return err
 	}
 	config = &Config{}
 	if _, err := toml.DecodeFile(configFile, config); err != nil {
-		log.Errorln("decode conf file not exist")
+		xlog.Error("decode conf file not exist")
 		return err
 	}
 	return nil

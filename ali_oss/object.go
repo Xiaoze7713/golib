@@ -10,6 +10,7 @@ package ali_oss
 import (
 	"bytes"
 	"errors"
+	"github.com/prometheus/common/log"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,13 +18,13 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 
-	"github.com/Xiaoze7713/golib/v3/log"
+	"github.com/Xiaoze7713/golib/v3/xContext/loggers/xlog"
 )
 
 func (b *Bucket) DownloadObject(object string) ([]byte, error) {
 	body, err := b.GetObject(object)
 	if err != nil {
-		log.Errorf("GetObject failed, err=%v", err.Error())
+		xlog.Errorf("GetObject failed, err=%v", err.Error())
 		return nil, err
 	}
 
