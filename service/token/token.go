@@ -18,8 +18,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
-	"git.singularity-ai.com/backend/library/v2/log"
+	"github.com/golib/v3/arch/web"
+	"github.com/golib/v3/log"
 )
 
 type TokenConfig struct {

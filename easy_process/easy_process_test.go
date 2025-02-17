@@ -2,7 +2,7 @@ package easy_process
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/utils"
+	"github.com/golib/v3/utils"
 	"testing"
 )
 

@@ -1,4 +1,5 @@
-module git.singularity-ai.com/backend/library/v2
+module github.com/golib/v3
+// module git.singularity-ai.com/backend/library/v2
 
 go 1.18
 

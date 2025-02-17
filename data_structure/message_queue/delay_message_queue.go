@@ -2,7 +2,7 @@ package message_queue
 
 import (
 	"context"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v3/xContext/loggers/xlog"
 	"github.com/go-stack/stack"
 	jsoniter "github.com/json-iterator/go"
 	"time"

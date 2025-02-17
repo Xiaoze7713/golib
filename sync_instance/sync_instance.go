@@ -1,7 +1,7 @@
 package sync_instance
 
 import (
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v3/xContext/loggers/xlog"
 	"sync"
 	"time"
 )

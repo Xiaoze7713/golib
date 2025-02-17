@@ -1,7 +1,7 @@
 package xhttp
 
 import (
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v3/xContext/loggers/xlog"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )

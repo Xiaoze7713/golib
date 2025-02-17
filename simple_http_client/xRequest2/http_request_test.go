@@ -2,11 +2,11 @@ package xRequest2
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
-	"git.singularity-ai.com/backend/library/v2/xContext/metrics/xmetric"
-	"git.singularity-ai.com/backend/library/v2/xContext/tracers/jaeger_trace"
+	"github.com/golib/v3/utils"
+	"github.com/golib/v3/xContext"
+	"github.com/golib/v3/xContext/loggers/xlog"
+	"github.com/golib/v3/xContext/metrics/xmetric"
+	"github.com/golib/v3/xContext/tracers/jaeger_trace"
 	"github.com/go-resty/resty/v2"
 	"testing"
 )

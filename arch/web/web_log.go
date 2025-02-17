@@ -10,7 +10,7 @@ package web
 import (
 	"fmt"
 
-	"git.singularity-ai.com/backend/library/v2/log"
+	"github.com/golib/v3/log"
 )
 
 type WebLogger struct {

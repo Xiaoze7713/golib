@@ -10,8 +10,8 @@ package middlewares
 import (
 	"errors"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
-	"git.singularity-ai.com/backend/library/v2/service/token"
+	"github.com/golib/v3/arch/web"
+	"github.com/golib/v3/service/token"
 )
 
 var (

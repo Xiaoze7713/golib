@@ -1,8 +1,8 @@
 package apollo_v2
 
 import (
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v3/utils"
+	"github.com/golib/v3/xContext/loggers/xlog"
 	"testing"
 	"time"
 )

@@ -14,7 +14,7 @@ import (
 	"github.com/BurntSushi/toml"
 	rds "github.com/gomodule/redigo/redis"
 
-	"git.singularity-ai.com/backend/library/v2/log"
+	"github.com/golib/v3/log"
 )
 
 type Client struct {

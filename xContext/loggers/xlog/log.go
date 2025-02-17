@@ -2,7 +2,7 @@ package xlog
 
 import (
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/utils"
+	"github.com/golib/v3/utils"
 	jsoniter "github.com/json-iterator/go"
 	"log"
 	"path"

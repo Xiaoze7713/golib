@@ -17,7 +17,7 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 
-	"git.singularity-ai.com/backend/library/v2/log"
+	"github.com/golib/v3/log"
 )
 
 func (b *Bucket) DownloadObject(object string) ([]byte, error) {

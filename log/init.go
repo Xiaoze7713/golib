@@ -13,7 +13,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"git.singularity-ai.com/backend/library/v2/env"
+	"github.com/golib/v3/env"
 )
 
 var defaultLogConfigPath = "conf/log.toml"

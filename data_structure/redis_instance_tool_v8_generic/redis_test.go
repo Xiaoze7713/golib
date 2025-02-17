@@ -3,8 +3,8 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v3/utils"
+	"github.com/golib/v3/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"reflect"
 	"sync"

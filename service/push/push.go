@@ -10,7 +10,7 @@ package push
 import (
 	"github.com/ylywyn/jpush-api-go-client"
 
-	"git.singularity-ai.com/backend/library/v2/arch/web"
+	"github.com/golib/v3/arch/web"
 )
 
 const (
