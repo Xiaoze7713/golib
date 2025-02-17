@@ -1,11 +1,11 @@
 package es
 
 import (
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext"
-	"git.singularity-ai.com/backend/library/v2/xContext/base_if/xtrace_base"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
-	"git.singularity-ai.com/backend/library/v2/xContext/metrics/null_metric"
+	"github.com/golib/v2/utils"
+	"github.com/golib/v2/xContext"
+	"github.com/golib/v2/xContext/base_if/xtrace_base"
+	"github.com/golib/v2/xContext/loggers/xlog"
+	"github.com/golib/v2/xContext/metrics/null_metric"
 	"io/ioutil"
 	"path"
 	"src/entity"

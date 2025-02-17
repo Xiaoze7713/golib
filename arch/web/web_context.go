@@ -13,7 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"git.singularity-ai.com/backend/library/v2/xContext"
+	"github.com/golib/v2/xContext"
 )
 
 // WebHandlerFunc http请求的处理者

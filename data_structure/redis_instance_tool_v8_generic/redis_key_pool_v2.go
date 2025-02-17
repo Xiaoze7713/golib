@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/generic_conv"
-	"git.singularity-ai.com/backend/library/v2/type_def"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v2/generic_conv"
+	"github.com/golib/v2/type_def"
+	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/go-redis/redis/v8"
 	"time"
 )

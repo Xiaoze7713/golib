@@ -3,8 +3,8 @@ package kafka
 import (
 	"context"
 	"errors"
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v2/utils"
+	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"sync"
 )

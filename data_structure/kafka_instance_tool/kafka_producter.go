@@ -2,8 +2,8 @@ package kafka_instance_tool
 
 import (
 	"context"
-	"git.singularity-ai.com/backend/library/v2/data_structure/message_queue"
-	"git.singularity-ai.com/backend/library/v2/kafka"
+	"github.com/golib/v2/data_structure/message_queue"
+	"github.com/golib/v2/kafka"
 )
 
 type KafkaProducer struct {

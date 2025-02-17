@@ -19,7 +19,7 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 
-	"git.singularity-ai.com/backend/library/v2/env"
+	"github.com/golib/v2/env"
 )
 
 type LogWriter struct {

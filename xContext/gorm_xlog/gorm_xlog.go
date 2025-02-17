@@ -2,7 +2,7 @@ package gorm_xlog
 
 import (
 	"context"
-	"git.singularity-ai.com/backend/library/v2/xContext"
+	"github.com/golib/v2/xContext"
 	"gorm.io/gorm/logger"
 	"time"
 )

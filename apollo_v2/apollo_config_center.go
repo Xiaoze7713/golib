@@ -3,8 +3,8 @@ package apollo_v2
 import (
 	"errors"
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/utils"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v2/utils"
+	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/apolloconfig/agollo/v4"
 	"github.com/apolloconfig/agollo/v4/env/config"
 	jsoniter "github.com/json-iterator/go"

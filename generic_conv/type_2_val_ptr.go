@@ -2,7 +2,7 @@ package generic_conv
 
 import (
 	"errors"
-	"git.singularity-ai.com/backend/library/v2/xContext/loggers/xlog"
+	"github.com/golib/v2/xContext/loggers/xlog"
 	"reflect"
 )
 

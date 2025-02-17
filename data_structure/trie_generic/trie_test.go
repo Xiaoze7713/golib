@@ -1,8 +1,8 @@
 package trie_generic_test
 
 import (
-	"git.singularity-ai.com/backend/library/v2/data_structure/trie_generic"
-	"git.singularity-ai.com/backend/library/v2/utils"
+	"github.com/golib/v2/data_structure/trie_generic"
+	"github.com/golib/v2/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"math/rand"

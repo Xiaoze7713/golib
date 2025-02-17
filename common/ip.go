@@ -10,7 +10,7 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"git.singularity-ai.com/backend/library/v2/env"
+	"github.com/golib/v2/env"
 	"net"
 	"runtime"
 	"strconv"
