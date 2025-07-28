@@ -23,32 +23,32 @@ import (
 )
 
 const (
-	HttpAction     = ext.StringTagName("action")
-	HttpPath       = ext.StringTagName("path")
-	HttpMethod     = ext.StringTagName("method")
-	ReqBody        = ext.StringTagName("req_body")
-	ReqBodyLen     = ext.StringTagName("req_body_len")
-	HttpReqHeader  = ext.StringTagName("req_header")
-	RespBody       = ext.StringTagName("resp_body")
-	HttpRespHeader = ext.StringTagName("resp_header")
-	RespCode       = ext.StringTagName("resp_code")
-	RespCodeMsg    = ext.StringTagName("resp_code_msg")
-	ReqStatus      = ext.StringTagName("req_status")
-	CostMs         = ext.StringTagName("cost_ms")
-	ClientIP       = ext.StringTagName("client_ip")
-	UserAgent      = ext.StringTagName("user_agent")
-	Error          = ext.StringTagName("error")
-	Alert          = ext.StringTagName("alert")
-	ExecStatus     = ext.StringTagName("exec_status")
-	TopicName      = ext.StringTagName("topic_name")
-	ConsumerSource = ext.StringTagName("consumer_source")
-	ProductTarget  = ext.StringTagName("product_target")
-	MessageBody    = ext.StringTagName("msg_body")
-	EventType      = ext.StringTagName("event_type")
-	EventSystem    = ext.StringTagName("event_system")
-	EventBody      = ext.StringTagName("event_body")
-	SpanID         = "span_id"
-	TraceID        = "trace_id"
+	HttpAction     XKey = "action"
+	HttpPath       XKey = "path"
+	HttpMethod     XKey = "method"
+	ReqBody        XKey = "req_body"
+	ReqBodyLen     XKey = "req_body_len"
+	HttpReqHeader  XKey = "req_header"
+	RespBody       XKey = "resp_body"
+	HttpRespHeader XKey = "resp_header"
+	RespCode       XKey = "resp_code"
+	RespCodeMsg    XKey = "resp_code_msg"
+	ReqStatus      XKey = "req_status"
+	CostMs         XKey = "cost_ms"
+	ClientIP       XKey = "client_ip"
+	UserAgent      XKey = "user_agent"
+	Error          XKey = "error"
+	Alert          XKey = "alert"
+	ExecStatus     XKey = "exec_status"
+	TopicName      XKey = "topic_name"
+	ConsumerSource XKey = "consumer_source"
+	ProductTarget  XKey = "product_target"
+	MessageBody    XKey = "msg_body"
+	EventType      XKey = "event_type"
+	EventSystem    XKey = "event_system"
+	EventBody      XKey = "event_body"
+	SpanID              = "span_id"
+	TraceID             = "trace_id"
 )
 
 // 监控 链路跟踪 log
@@ -420,7 +420,7 @@ func (x *XContext) SetKV(key any, value interface{}) {
 
 // extTag 常量转 metric label
 
-func (x *XContext) TagNames2PLabels(tags ...ext.StringTagName) prometheus.Labels {
+func (x *XContext) TagNames2PLabels(tags ...XKey) prometheus.Labels {
 	pl := prometheus.Labels{}
 	for _, tag := range tags {
 		pl[string(tag)] = x.LoadString(tag)
@@ -429,7 +429,7 @@ func (x *XContext) TagNames2PLabels(tags ...ext.StringTagName) prometheus.Labels
 	return pl
 }
 
-// set span tag
+// set/span/tag
 func (x *XContext) DoRequestSpanTag() {
 	x.SpanSTagSet(HttpPath, HttpMethod, ReqBody, HttpReqHeader, ReqBodyLen)
 }
@@ -457,19 +457,20 @@ func (x *XContext) Keys2KVMap(keys ...any) KVMType {
 
 func (x *XContext) LogTags(kvm KVMType) {
 	for k, v := range kvm {
-		extStr, ok := k.(ext.StringTagName)
+		xk, ok := k.(XKey)
 		if !ok {
 			s := fmt.Sprintf("%v", k)
 			x.SetTag(s, v)
 			continue
 		}
-		x.SpanSTagSet(extStr)
+		x.SpanSTagSet(xk)
 	}
 }
 
-func (x *XContext) SpanSTagSet(tags ...ext.StringTagName) {
+func (x *XContext) SpanSTagSet(tags ...XKey) {
 	for _, tag := range tags {
-		tag.Set(x.Span, x.LoadString(tag))
+		tagExt := tag.ToExtTagName()
+		tagExt.Set(x.Span, x.LoadString(tag))
 	}
 }
 

@@ -3,8 +3,10 @@ package xContext
 import (
 	"bytes"
 	"fmt"
-	"github.com/golib/v2/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/golib/v2/utils"
+	"github.com/golib/v2/xContext/metrics"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
@@ -103,20 +105,20 @@ func DoWsConn(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
 			if RespBodySkip(gc.Request.URL.Path) {
-				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
 			} else {
-				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
 			}
 			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
+			ctx.CounterBy(metrics.MetricDoRequest, ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
-			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+			ctx.SummaryBy(metrics.MetricDoRequestCost, ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
 		// gc.Set("RequestID", traceID)
-		body, _ := ioutil.ReadAll(gc.Request.Body)
+		body, _ := io.ReadAll(gc.Request.Body)
 		bodyStr := string(body)
 		// 写回
-		gc.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		gc.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		requestIn := KVMType{
 			ClientIP:   gc.ClientIP(),
 			HttpMethod: gc.Request.Method,
@@ -128,11 +130,10 @@ func DoWsConn(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
 		if ReqBodySkip(gc.Request.URL.Path) {
-			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
+			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
 		} else {
-			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		}
-		ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		ctx.LogFields("req", "req_in")
 		defer func() {
 			if e := recover(); e != any(nil) {
@@ -172,20 +173,21 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 			ctx.LogTags(ctx.Keys2KVMap(ReqStatus, CostMs))
 			ctx.LogFields("resp", "resp_out")
 			if RespBodySkip(gc.Request.URL.Path) {
-				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs)...))
+
 			} else {
-				ctx.Info(append([]interface{}{"response_out"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
+				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(HttpMethod, HttpPath, ReqBodyLen, ReqStatus, CostMs, RespBody)...))
 			}
 			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy("do_request", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
+			ctx.CounterBy(metrics.MetricDoRequest, ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Add(1)
 			// todo code
-			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+			ctx.SummaryBy(metrics.MetricDoRequestCost, ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
 		// gc.Set("RequestID", traceID)
-		body, _ := ioutil.ReadAll(gc.Request.Body)
+		body, _ := io.ReadAll(gc.Request.Body)
 		bodyStr := string(body)
 		// 写回
-		gc.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		gc.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		requestIn := KVMType{
 			ClientIP:   gc.ClientIP(),
 			HttpMethod: gc.Request.Method,
@@ -197,9 +199,9 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		ctx.SetKVs(requestIn)
 		ctx.LogTags(requestIn)
 		if ReqBodySkip(gc.Request.URL.Path) { // 20k
-			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
+			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen)...))
 		} else {
-			ctx.Info(append([]interface{}{"request_in"}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
+			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(HttpMethod, HttpPath, ClientIP, ReqBodyLen, ReqBody)...))
 		}
 		ctx.LogFields("req", "req_in")
 		defer func() {
@@ -214,16 +216,22 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		gc.Next()
 		// ctxI, _ := gc.Get("xContext")
 		// ctx = ctxI.(*XContext)
+		gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
 		resp, ok := gc.Get("resp")
 		respContentJson := utils.MustJson(resp)
 		if ok {
-			gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
 			ctx.SetKV(RespBody, respContentJson)
 			gc.JSON(http.StatusOK, resp)
 		} else {
-			resp = map[string]interface{}{"code": -1, "code_msg": ""}
-			gc.JSON(http.StatusOK, resp)
-			ctx.SetKV(RespBody, respContentJson)
+			respBytes, ok := gc.Get("resp_bytes")
+			if !ok {
+				resp = map[string]interface{}{"code": -1, "code_msg": ""}
+				ctx.SetKV(RespBody, respContentJson)
+				gc.JSON(http.StatusOK, resp)
+			} else {
+				gc.Writer.Write(respBytes.([]byte))
+				gc.Status(http.StatusOK)
+			}
 		}
 	}
 }

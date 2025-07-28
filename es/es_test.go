@@ -8,8 +8,6 @@ import (
 	"github.com/golib/v2/xContext/metrics/null_metric"
 	"io/ioutil"
 	"path"
-	"src/entity"
-	"src/logic/dict"
 	"strings"
 	"sync"
 	"testing"
@@ -32,20 +30,7 @@ func TestName(t *testing.T) {
 	//	xlog.Error(err)
 	//}
 	InitAll()
-	err := dict.Handler.Insert(ctx, &entity.WordType{
-		Tags: []entity.Tag{"食物", "水果", "植物"},
-		Word: "苹果",
-	})
-	if err != nil {
-		xlog.Error(err)
-	}
-	err = dict.Handler.UpdateWord(ctx, &entity.WordType{
-		Tags: []entity.Tag{"食物", "水果", "植物"},
-		Word: "苹果",
-	})
-	if err != nil {
-		xlog.Error(err)
-	}
+	ctx.Fin()
 	time.Sleep(time.Second * 3)
 }
 
@@ -80,11 +65,6 @@ func TestLoadData(t *testing.T) {
 				word := strings.Split(wordLine, "\t")[0]
 				err = func() (err error) {
 					ctx := xContext.NewXContext(word + tag)
-					newWord := &entity.WordType{
-						Tags: []entity.Tag{entity.Tag(tag)},
-						Word: strings.TrimSpace(word),
-					}
-					err = dict.Handler.Insert(ctx, newWord)
 					defer ctx.Fin()
 					return nil
 				}()

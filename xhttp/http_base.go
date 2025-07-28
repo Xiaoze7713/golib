@@ -1,9 +1,9 @@
 package xhttp
 
 import (
-	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/golib/v2/xContext/loggers/xlog"
 )
 
 type Request struct {
@@ -19,7 +19,49 @@ func GinMustBind(gc *gin.Context, binding binding.Binding, data interface{}) (er
 type Response struct {
 	Code     int32       `json:"code"`
 	Message  string      `json:"code_msg"`
+	Reason   string      `json:"code_reason"`
 	RespData interface{} `json:"resp_data,omitempty"`
+}
+
+type Error interface {
+	error
+	Reason() string
+}
+
+type ReasonError struct {
+	ReasonStr string `json:"reason"`
+	error
+}
+
+func (e ReasonError) Reason() string {
+	return e.ReasonStr
+}
+
+func NewError(reason string, err error) ReasonError {
+	return ReasonError{reason, err}
+}
+
+func ConvertError(err error) ReasonError {
+	newErr, ok := err.(ReasonError)
+	if ok {
+		return newErr
+	}
+	return ReasonError{err.Error(), err}
+}
+
+func SetResponseWithReason(g *gin.Context, err Error, data interface{}) {
+	errorMsg := ""
+	if err != nil {
+		xlog.Error(err)
+		errorMsg = ErrMsg(err)
+	}
+	resp := Response{
+		Code:     ErrorCode(err),
+		Message:  errorMsg,
+		Reason:   err.Reason(),
+		RespData: data,
+	}
+	g.Set("resp", resp)
 }
 
 func SetResponse(g *gin.Context, err error, data interface{}) {
@@ -31,6 +73,7 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 	resp := Response{
 		Code:     ErrorCode(err),
 		Message:  errorMsg,
+		Reason:   err.Error(),
 		RespData: data,
 	}
 	g.Set("resp", resp)
