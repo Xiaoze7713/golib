@@ -9,6 +9,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/golib/v2/xContext"
 
 	"github.com/golib/v2/log"
 )
@@ -59,7 +60,7 @@ func (l *WebLogger) Fatal(args ...interface{}) {
 }
 
 func (ctx *WebContext) ContextPrefix() string {
-	return fmt.Sprintf("trace_id[%v] span_id[%v] ", ctx.TraceID().String(), ctx.SpanID().String())
+	return fmt.Sprintf("%s[%v] %s[%v] ", xContext.TraceID, ctx.TraceID().String(), xContext.SpanID, ctx.SpanID().String())
 }
 
 func (ctx *WebContext) Debugf(format string, args ...interface{}) {

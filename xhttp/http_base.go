@@ -86,3 +86,21 @@ func SetErrorResponse(g *gin.Context, code int32, msg string) {
 	}
 	g.Set("resp", resp)
 }
+
+func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) {
+	g.Writer.Write(data)
+	if addLine {
+		g.Writer.WriteString("\n")
+	}
+	g.Writer.Flush()
+	stream, ok := g.Get(RespStream)
+	if ok {
+		streamRespList := stream.([]string)
+		streamRespList = append(streamRespList, string(data))
+		g.Set(RespStream, streamRespList)
+	}
+	if stream != nil {
+		streamRespList := append([]string{}, string(data))
+		g.Set(RespStream, streamRespList)
+	}
+}

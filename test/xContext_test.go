@@ -3,11 +3,12 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/golib/v2/xContext"
 	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/golib/v2/xContext/metrics/xmetric"
 	"github.com/golib/v2/xContext/tracers/jaeger_trace"
-	"github.com/gin-gonic/gin"
+	"github.com/golib/v2/xhttp"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
@@ -34,7 +35,7 @@ func RunFunc(ctx *xContext.XContext) {
 	ctx.Info(ctx.SerializeSpanContext())
 }
 
-//日志自定义格式
+// 日志自定义格式
 func TestContext(t *testing.T) {
 	err := xInit()
 	if err != nil {
@@ -71,7 +72,7 @@ func GinServer() (ginInstance *gin.Engine) {
 	router.Use(
 		// logger.Logger(utils.SetLogger("room.log")),
 		gin.Recovery(),
-		xContext.DoRequest(),
+		xhttp.DoRequest(),
 	)
 	//router.Use(requests.DoRequest())
 	router.GET("/health", func(c *gin.Context) {
@@ -219,7 +220,7 @@ func TestContext3(t *testing.T) {
 	})
 	s := http.Server{
 		Addr:    ":9033",
-		Handler: xContext.HttpIntercept(mux),
+		Handler: xhttp.HttpIntercept(mux),
 	}
 	err = s.ListenAndServe()
 

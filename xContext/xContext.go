@@ -49,6 +49,7 @@ const (
 	EventBody      XKey = "event_body"
 	SpanID              = "span_id"
 	TraceID             = "trace_id"
+	XContextKey    XKey = "xContext"
 )
 
 // 监控 链路跟踪 log
@@ -272,7 +273,7 @@ func (x *XContext) OperationName() string {
 var notGrandFather = errors.New("not grand father")
 
 func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XContext, error) {
-	xCtxVal := ctx.Value("xContext")
+	xCtxVal := ctx.Value(XContextKey.String())
 	if xCtxVal != nil {
 		xCtx, ok := xCtxVal.(*XContext)
 		if ok {
@@ -486,7 +487,7 @@ func (x *XContext) LogFields(kvs ...interface{}) { // use k1, v1 , k2, v2,
 }
 
 func (x *XContext) XContextPrefix() string {
-	return fmt.Sprintf("[trace_id:%v][span_id:%v] ", x.TraceID().String(), x.SpanID().String())
+	return fmt.Sprintf("[%s:%v][%s:%v] ", TraceID, x.TraceID().String(), SpanID, x.SpanID().String())
 }
 
 func (x *XContext) ArgsFormats(args ...interface{}) string {

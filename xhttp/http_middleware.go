@@ -1,8 +1,8 @@
 package xhttp
 
 import (
-	"github.com/golib/v2/xContext"
 	"github.com/gin-gonic/gin"
+	"github.com/golib/v2/xContext"
 )
 
 func NoRoute(gc *gin.Context) {
@@ -31,3 +31,9 @@ func Health(gc *gin.Context) {
 	gc.Abort()
 	gc.Next()
 }
+
+const (
+	RespJson   = "resp"
+	RespBytes  = "resp_bytes"
+	RespStream = "resp_stream"
+)
