@@ -99,11 +99,15 @@ func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) {
 	g.Writer.Flush()
 	stream, ok := g.Get(RespStream)
 	if ok {
-		streamRespList := stream.([]string)
-		streamRespList = append(streamRespList, string(data))
+		streamRespList, ok1 := stream.([]string)
+		if ok1 {
+			streamRespList = append(streamRespList, string(data))
+		} else {
+			streamRespList = append([]string{}, string(data))
+		}
 		g.Set(RespStream, streamRespList)
 	}
-	if stream != nil {
+	if !ok {
 		streamRespList := append([]string{}, string(data))
 		g.Set(RespStream, streamRespList)
 	}
