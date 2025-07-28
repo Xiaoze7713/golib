@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/golib/v2/utils"
 	"github.com/golib/v2/xContext/loggers/xlog"
-	"github.com/go-redis/redis/v8"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -36,10 +37,12 @@ type DLock struct {
 	//sep      string
 	expireSecond int // second
 	saltString   string
-	maxInterval  time.Duration
+	interval     time.Duration
+	maxRetry     int
+	pBase        float64
 }
 
-func NewLock(key, sep, saltString string, expire int, interval time.Duration, client redis.Cmdable) (lock *DLock, err error) {
+func NewLock(key, sep, saltString string, expire int, interval time.Duration, maxRetry int, pBase float64, client redis.Cmdable) (lock *DLock, err error) {
 	if key == "" {
 		xlog.Warn("counter null business key")
 		//err = errors.New("null business key")
@@ -56,6 +59,11 @@ func NewLock(key, sep, saltString string, expire int, interval time.Duration, cl
 		expire,
 		saltString,
 		interval,
+		maxRetry,
+		pBase,
+	}
+	if lock.pBase <= 1 {
+		lock.pBase = 1
 	}
 	if lock.MarshalInterface == nil {
 		defaultMarshal.Apply(&lock.RedisToolBase)
@@ -67,11 +75,23 @@ func (m *DLock) SelfKey(key string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(key+m.saltString)))
 }
 
-func (m *DLock) NewLock(ctx context.Context, key string) (ulk *UnlockHdl, err error) {
+func (m *DLock) randInterval(t time.Duration) time.Duration {
+	step := t + (t/100)*time.Duration(rand.Int()%10+10)
+	return step
+}
+
+func (m *DLock) RetryScale(i int) (scale float64) {
+	scale = math.Pow(m.pBase, float64(i))
+	scale = math.Min(scale, 10)
+	scale = math.Max(scale, 1)
+	return scale
+}
+
+func (m *DLock) Lock(ctx context.Context, key string) (ulk *UnlockHdl, err error) {
 	lKey := key
-	step := time.Millisecond * 25
 	dKey := ""
-	for i := time.Duration(0); i < m.maxInterval; i += step {
+	for retry := 0; retry < m.maxRetry; retry++ {
+		step := (m.randInterval(m.interval) / 1000) * time.Duration(m.RetryScale(retry)*1000)
 		dKey, err = m.lock(ctx, key)
 		if err != nil {
 			return nil, err

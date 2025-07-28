@@ -3,9 +3,9 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/golib/v2/utils"
 	"github.com/golib/v2/xContext/loggers/xlog"
-	"github.com/go-redis/redis/v8"
 	"reflect"
 	"sync"
 	"testing"
@@ -171,10 +171,10 @@ func TestDLock_Lock(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			pool, err := NewLock("test", "-", "sai", 3, time.Millisecond*1500, cli)
+			pool, err := NewLock("test", "-", "sai", 3, time.Millisecond*1500, 3, 2, cli)
 			ctx := context.Background()
 			key01 := "key_01"
-			ulk, err := pool.NewLock(ctx, key01)
+			ulk, err := pool.Lock(ctx, key01)
 			if err != nil {
 				xlog.Errorf("%v", err)
 				return
