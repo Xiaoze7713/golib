@@ -239,7 +239,7 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 			if ok1 {
 				ctx.SetKV(xContext.RespBody, respStreamList)
 			}
-			gc.JSON(http.StatusOK, resp)
+			gc.Status(http.StatusOK)
 			return
 		}
 		resp = Response{
