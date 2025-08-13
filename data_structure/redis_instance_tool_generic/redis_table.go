@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/golib/v2/xContext/loggers/xlog"
-	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/redis/go-redis/v9"
 )
 
 type Table struct {

@@ -7,7 +7,7 @@ import (
 	"github.com/golib/v2/generic_conv"
 	"github.com/golib/v2/type_def"
 	"github.com/golib/v2/xContext/loggers/xlog"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 type KeySet[K type_def.BaseValueType, V any] struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golib/v2/utils"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"testing"
 )
 

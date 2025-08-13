@@ -3,9 +3,9 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/golib/v2/utils"
 	"github.com/golib/v2/xContext/loggers/xlog"
+	"github.com/redis/go-redis/v9"
 	"reflect"
 	"sync"
 	"testing"

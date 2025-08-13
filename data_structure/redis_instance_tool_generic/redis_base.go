@@ -2,8 +2,8 @@ package redis_instance_tool
 
 import (
 	"errors"
-	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
