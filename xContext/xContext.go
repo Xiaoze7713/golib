@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/golib/v2/xContext/loggers/xlog"
-	"github.com/opentracing/opentracing-go"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golib/v2/xContext/loggers/xlog"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/golib/v2/utils"
 	"github.com/golib/v2/xContext/base_if/xlog_base"
@@ -250,10 +252,12 @@ func (x *XContext) ToAnyArgs(keys ...any) []interface{} {
 
 type XContext struct {
 	context.Context
+	CancelCauseFunc context.CancelCauseFunc
 	xlog_base.LoggerIF
 	xmetric_base.MetricsIF
+	gc            *gin.Context
 	Span          xspan_base.SpanIF
-	CancelList    []context.CancelFunc
+	CancelList    []context.CancelCauseFunc
 	operationName string
 }
 
@@ -272,7 +276,7 @@ func (x *XContext) OperationName() string {
 
 var notGrandFather = errors.New("not grand father")
 
-func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XContext, error) {
+func GetXContextFromCtxValue(ctx context.Context, operationName string) (*XContext, error) {
 	xCtxVal := ctx.Value(XContextKey.String())
 	if xCtxVal != nil {
 		xCtx, ok := xCtxVal.(*XContext)
@@ -286,7 +290,7 @@ func GetXContextFromGrandFather(ctx context.Context, operationName string) (*XCo
 	//return xCtx.CopyWithContext(ctx), nil
 }
 
-func (x *XContext) CopyWithContext(ctx context.Context) *XContext {
+func (x *XContext) CopyWithContext(ctx context.Context, cancel context.CancelFunc) *XContext {
 	return &XContext{
 		Context:       ctx,
 		LoggerIF:      x.LoggerIF,
@@ -309,14 +313,20 @@ func NewXContextWithContextString(ctx context.Context, operationName, spanCtxStr
 	return xCtx
 }
 
-func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
+func newXContext(ctx context.Context, operationName string) *XContext {
+	newC, cancelCause := context.WithCancelCause(ctx)
 	xCtx := &XContext{
-		Context:       ctx,
-		LoggerIF:      mLogger,
-		MetricsIF:     mMetric,
-		operationName: operationName,
-		// lock:      &sync.RWMutex{},
+		Context:         newC,
+		CancelCauseFunc: cancelCause,
+		LoggerIF:        mLogger,
+		MetricsIF:       mMetric,
+		operationName:   operationName,
 	}
+	return xCtx
+}
+
+func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
+	xCtx := newXContext(ctx, operationName)
 	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
 	)
@@ -324,46 +334,28 @@ func NewXContextWithContext(ctx context.Context, operationName string) *XContext
 }
 
 func NewXContext(operationName string) *XContext {
-	xCtx := &XContext{
-		Context:       context.Background(),
-		LoggerIF:      mLogger,
-		MetricsIF:     mMetric,
-		operationName: operationName,
-		// lock:      &sync.RWMutex{},
-	}
+	xCtx := newXContext(context.Background(), operationName)
 	xCtx.Span = mTrace.StartSpan(operationName,
 		opentracing.StartTime{},
 	)
 	return xCtx
 }
 
-func NewChildXContext(parents *XContext, operationName string) *XContext {
-	childCtx, cancel := context.WithCancel(parents.Context)
-	parents.CancelList = append(parents.CancelList, cancel)
-	child := &XContext{
-		Context:    childCtx,
-		LoggerIF:   mLogger,
-		MetricsIF:  mMetric,
-		CancelList: []context.CancelFunc{},
-		// lock:       parents.lock,
-	}
+func NewChildXContext(parent *XContext, operationName string) *XContext {
+	child := newXContext(parent.Context, operationName)
+	// child 和 father 同步树形cancel
+	parent.CancelList = append(parent.CancelList, child.CancelCauseFunc)
 	child.Span = mTrace.StartSpan(operationName,
-		opentracing.ChildOf(parents.Span.Context()),
+		opentracing.ChildOf(parent.Span.Context()),
 		opentracing.StartTime{},
 	)
 	return child
 }
 
-func NewFollowXContext(origin *XContext, operationName string) *XContext {
-	brother := &XContext{
-		Context:    context.Background(),
-		LoggerIF:   mLogger,
-		MetricsIF:  mMetric,
-		CancelList: []context.CancelFunc{},
-		// lock:       &sync.RWMutex{},
-	}
+func NewFollowXContext(spanCtx opentracing.SpanContext, operationName string) *XContext {
+	brother := newXContext(context.Background(), operationName)
 	brother.Span = mTrace.StartSpan(operationName,
-		opentracing.FollowsFrom(origin.Span.Context()),
+		opentracing.FollowsFrom(spanCtx),
 		opentracing.StartTime{},
 	)
 	return brother
@@ -507,14 +499,33 @@ func (x *XContext) KVsFormats(kvs KVMType) string {
 }
 func (x *XContext) Fin() {
 	x.Span.FinishWithOptions(opentracing.FinishOptions{
-		FinishTime: time.Time{},
+		FinishTime: time.Now(),
+		//LogRecords: []opentracing.LogRecord{
+		//
+		//},
+		// BulkLogData: nil,
+		//LogRecords:  nil,
+		//BulkLogData: nil,
+	})
+	for _, cancel := range x.CancelList {
+		if cancel != nil {
+			cancel(nil)
+		}
+	}
+}
+
+func (x *XContext) Cancel(err error) {
+	x.Span.FinishWithOptions(opentracing.FinishOptions{
+		FinishTime: time.Now(),
 		// LogRecords:  nil,
 		// BulkLogData: nil,
 		//LogRecords:  nil,
 		//BulkLogData: nil,
 	})
 	for _, cancel := range x.CancelList {
-		cancel()
+		if cancel != nil {
+			cancel(err)
+		}
 	}
 }
 

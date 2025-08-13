@@ -6,7 +6,7 @@ import (
 )
 
 func NoRoute(gc *gin.Context) {
-	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	ctx, _ := xContext.GetXContextFromCtxValue(gc, gc.Request.RequestURI)
 	// defer ctx.Fin()
 	ctx.SummaryBy("noRoute", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
 	SetErrorResponse(gc, -1, "path no route")
@@ -15,7 +15,7 @@ func NoRoute(gc *gin.Context) {
 }
 
 func NoMethod(gc *gin.Context) {
-	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	ctx, _ := xContext.GetXContextFromCtxValue(gc, gc.Request.RequestURI)
 	// defer ctx.Fin()
 	ctx.SummaryBy("noMethod", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
 	SetErrorResponse(gc, -1, "function not found")
@@ -24,7 +24,7 @@ func NoMethod(gc *gin.Context) {
 }
 
 func Health(gc *gin.Context) {
-	ctx, _ := xContext.GetXContextFromGrandFather(gc, gc.Request.RequestURI)
+	ctx, _ := xContext.GetXContextFromCtxValue(gc, gc.Request.RequestURI)
 	// defer ctx.Fin()
 	ctx.SummaryBy("health_check", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus))
 	SetErrorResponse(gc, 200, "i am healthy~")

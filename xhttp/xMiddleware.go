@@ -3,16 +3,16 @@ package xhttp
 import (
 	"bytes"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/golib/v2/utils"
-	"github.com/golib/v2/xContext"
-	"github.com/golib/v2/xContext/metrics"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strings"
 	"sync"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golib/v2/utils"
+	"github.com/golib/v2/xContext"
+	"github.com/golib/v2/xContext/metrics"
 )
 
 var reqBodySkip = map[string]bool{}
@@ -276,10 +276,10 @@ func HttpIntercept(h http.Handler) http.Handler {
 			ctx.SummaryBy("do_request_cost", ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
 		}()
 		// 读body
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		bodyStr := string(body)
 		// 写回
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
 		requestIn := xContext.KVMType{
 			xContext.ClientIP:   r.RemoteAddr,
 			xContext.HttpMethod: r.Method,
@@ -307,7 +307,7 @@ func HttpIntercept(h http.Handler) http.Handler {
 				ctx.SetKV(xContext.ReqStatus, "success")
 			}
 		}()
-		serverStartCtx := xContext.NewFollowXContext(ctx, ctx.LoadString(xContext.HttpPath))
+		serverStartCtx := xContext.NewFollowXContext(ctx.Span.Context(), ctx.LoadString(xContext.HttpPath))
 		serverStartCtx.SetKV("xContext", serverStartCtx)
 		r = r.WithContext(serverStartCtx)
 		h.ServeHTTP(w, r)
