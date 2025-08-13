@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/golib/v2/generic_conv"
 	"github.com/golib/v2/type_def"
 	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 type KeyPoolV2[K type_def.BaseValueType, V any] struct {
@@ -71,7 +72,7 @@ func (m *KeyPoolV2[K, V]) Set(ctx context.Context, key K, valueIF V) (err error)
 	if !res {
 		return errors.New("set failed")
 	}
-	_, err = m.client.ZAdd(ctx, m.ZKey(), []*redis.Z{{
+	_, err = m.client.ZAdd(ctx, m.ZKey(), []redis.Z{{
 		Member: m.SelfKey(key),
 		Score:  float64(time.Now().UnixMilli()),
 	},

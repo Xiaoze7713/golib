@@ -3,12 +3,13 @@ package redis_instance_tool
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/golib/v2/generic_conv"
 	"github.com/golib/v2/utils"
 	"github.com/golib/v2/xContext/loggers/xlog"
 	"github.com/redis/go-redis/v9"
-	"strconv"
-	"time"
 )
 
 type RedisDelayQueue[T any] struct {
@@ -68,7 +69,7 @@ func (m *RedisDelayQueue[T]) Add(ctx context.Context, key string, valueIf T, del
 		xlog.Errorf("set err %v %v %v", key, value, err)
 		return err
 	}
-	_, err = m.client.ZAdd(ctx, m.QueueName(), &redis.Z{
+	_, err = m.client.ZAdd(ctx, m.QueueName(), redis.Z{
 		Score:  float64(timeMs),
 		Member: m.ToKey(key),
 	}).Result()
