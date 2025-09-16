@@ -63,7 +63,7 @@ func SetResponseWithReason(g *gin.Context, err Error, data interface{}) {
 	if err != nil {
 		resp.Reason = err.Error()
 	}
-	g.Set("resp", resp)
+	g.Set(RespJson, resp)
 }
 
 func SetResponse(g *gin.Context, err error, data interface{}) {
@@ -80,7 +80,11 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 	if err != nil {
 		resp.Reason = err.Error()
 	}
-	g.Set("resp", resp)
+	g.Set(RespJson, resp)
+}
+
+func SetBytesResponse(g *gin.Context, data []byte) {
+	g.Set(RespBytes, data)
 }
 
 func SetErrorResponse(g *gin.Context, code int32, msg string) {
@@ -88,13 +92,19 @@ func SetErrorResponse(g *gin.Context, code int32, msg string) {
 		Code:    code,
 		Message: msg,
 	}
-	g.Set("resp", resp)
+	g.Set(RespJson, resp)
 }
 
-func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) {
-	g.Writer.Write(data)
+func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) (err error) {
+	_, err = g.Writer.Write(data)
+	if err != nil {
+		return err
+	}
 	if addLine {
-		g.Writer.WriteString("\n")
+		_, err2 := g.Writer.WriteString("\n\n")
+		if err2 != nil {
+			return err2
+		}
 	}
 	g.Writer.Flush()
 	stream, ok := g.Get(RespStream)
@@ -111,4 +121,40 @@ func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) {
 		streamRespList := append([]string{}, string(data))
 		g.Set(RespStream, streamRespList)
 	}
+	return nil
+}
+
+const DataPrefix = "data: "
+
+func WriteStreamDataBlock(g *gin.Context, data []byte, addLine bool) (err error) {
+	_, err = g.Writer.Write([]byte(DataPrefix))
+	if err != nil {
+		return err
+	}
+	_, err = g.Writer.Write(data)
+	if err != nil {
+		return err
+	}
+	if addLine {
+		_, err2 := g.Writer.WriteString("\n\n")
+		if err2 != nil {
+			return err2
+		}
+	}
+	g.Writer.Flush()
+	stream, ok := g.Get(RespStream)
+	if ok {
+		streamRespList, ok1 := stream.([]string)
+		if ok1 {
+			streamRespList = append(streamRespList, string(data))
+		} else {
+			streamRespList = append([]string{}, string(data))
+		}
+		g.Set(RespStream, streamRespList)
+	}
+	if !ok {
+		streamRespList := append([]string{}, string(data))
+		g.Set(RespStream, streamRespList)
+	}
+	return nil
 }

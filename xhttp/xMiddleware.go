@@ -208,8 +208,16 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		ctx.LogFields("req", "req_in")
 		defer func() {
 			if e := recover(); e != any(nil) {
+				resp := Response{
+					Code:    -2,
+					Message: "no response",
+					Reason:  "",
+				}
+				ctx.SetKV(xContext.RespBody, utils.MustJson(resp))
+				gc.JSON(http.StatusOK, resp)
 				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
 				ctx.SetKV(xContext.ReqStatus, "panic")
+				gc.Abort()
 			} else {
 				ctx.SetKV(xContext.ReqStatus, "success")
 			}
