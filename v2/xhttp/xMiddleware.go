@@ -155,7 +155,7 @@ func ResponseOutProcess(gc *gin.Context, ctx *xContext.XContext) {
 	parameters := []interface{}{metrics.MetricResponseOut}
 	anyArgs := []interface{}{xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs}
 	_, ok := gc.Get(KeySkipResp)
-	if !ok || !RespBodySkip(gc.Request.URL.Path) { // 20k
+	if !ok && !RespBodySkip(gc.Request.URL.Path) { // 20k
 		anyArgs = append(anyArgs, xContext.RespBody)
 	}
 	parameters = append(parameters, ctx.ToAnyArgs(anyArgs...))
@@ -184,7 +184,7 @@ func RequestInProcess(gc *gin.Context, ctx *xContext.XContext) {
 	parameters := []interface{}{metrics.MetricRequestIn}
 	anyArgs := []interface{}{xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen}
 	_, ok := gc.Get(KeySkipReq)
-	if !ok || !ReqBodySkip(gc.Request.URL.Path) { // 20k
+	if !ok && !ReqBodySkip(gc.Request.URL.Path) { // 20k
 		anyArgs = append(anyArgs, xContext.ReqBody)
 	}
 	parameters = append(parameters, ctx.ToAnyArgs(anyArgs...))
