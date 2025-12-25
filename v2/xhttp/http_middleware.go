@@ -33,7 +33,8 @@ func Health(gc *gin.Context) {
 }
 
 const (
-	RespJson   = "resp"
-	RespBytes  = "resp_bytes"
-	RespStream = "resp_stream"
+	RespJson         = "resp"
+	RespBytes        = "resp_bytes"
+	RespStream       = "resp_stream"
+	HttpResponseCode = "http_response_code"
 )

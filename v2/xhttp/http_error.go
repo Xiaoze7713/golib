@@ -2,7 +2,13 @@ package xhttp
 
 import "errors"
 
+const (
+	ServerCodeStatusOK  = 200
+	ServerCodeStatusBad = 9000
+)
+
 var (
+	ServerStatusOK   = errors.New("Server Status OK")
 	ErrorServerError = errors.New("服务器异常") // 通用
 
 	ErrorServerTokenError   = errors.New("token异常, 请下线")
@@ -33,7 +39,8 @@ type Error2Code struct {
 }
 
 var error2CodeIns = &Error2Code{error2code: map[error]int32{
-	ErrorServerError: 9000,
+	ServerStatusOK:   ServerCodeStatusOK,
+	ErrorServerError: ServerCodeStatusBad,
 
 	ErrorServerTokenError:   10001,
 	ErrorServerTokenExpire:  10002,
@@ -58,7 +65,7 @@ var error2CodeIns = &Error2Code{error2code: map[error]int32{
 }}
 
 func RegisterNewErr(err error, code int32) bool {
-	if code == 200 {
+	if code == ServerCodeStatusOK {
 		return false
 	}
 	if _, ok := error2CodeIns.error2code[err]; ok {
@@ -70,11 +77,11 @@ func RegisterNewErr(err error, code int32) bool {
 
 func ErrorCode(err error) int32 {
 	if err == nil {
-		return 200
+		return ServerCodeStatusOK
 	}
 	code, ok := error2CodeIns.error2code[err]
 	if !ok {
-		return 9000
+		return ServerCodeStatusBad
 	}
 	return code
 }

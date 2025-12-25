@@ -17,6 +17,13 @@ import (
 
 var reqBodySkip = map[string]bool{}
 var respBodySkip = map[string]bool{}
+var reqBodyPrefixSkip = map[string]bool{}
+var respBodyPrefixSkip = map[string]bool{}
+
+const (
+	KeySkipReq  = "SkipReq"
+	KeySkipResp = "SkipResp"
+)
 
 const (
 	SkipReq = iota
@@ -32,11 +39,15 @@ func AddBodySkip(path string, t int) {
 	switch t {
 	case SkipReq:
 		reqBodySkip[path] = true
+		reqBodyPrefixSkip[path] = true
 	case SkipResp:
 		respBodySkip[path] = true
+		respBodyPrefixSkip[path] = true
 	case SkipAll:
 		reqBodySkip[path] = true
+		reqBodyPrefixSkip[path] = true
 		respBodySkip[path] = true
+		respBodyPrefixSkip[path] = true
 	}
 }
 
@@ -58,14 +69,40 @@ func ReqBodySkip(path string) bool {
 	lock.RLock()
 	defer lock.RUnlock()
 	_, ok := reqBodySkip[path]
-	return ok
+	if ok {
+		return true
+	}
+	for prefix, _ := range reqBodyPrefixSkip {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func RespBodySkip(path string) bool {
 	lock.RLock()
 	defer lock.RUnlock()
 	_, ok := respBodySkip[path]
-	return ok
+	if ok {
+		return true
+	}
+	for prefix, _ := range respBodyPrefixSkip {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func GcReqBodySkip(gc *gin.Context) {
+	gc.Set(KeySkipReq, true)
+	return
+}
+
+func GcRespBodySkip(gc *gin.Context) {
+	gc.Set(KeySkipResp, true)
+	return
 }
 
 type GinCtx2XCtx func(gc *gin.Context, ctx *xContext.XContext)
@@ -93,6 +130,110 @@ func ParseTraceID(tid string) string {
 	return traceID
 }
 
+func RecoverProcess(gc *gin.Context, ctx *xContext.XContext, e any, stack []byte) {
+	if e != any(nil) {
+		resp := Response{
+			Code:    -2,
+			Message: "no response",
+			Reason:  "",
+		}
+		ctx.SetKV(xContext.RespBody, utils.MustJson(resp))
+		gc.JSON(http.StatusOK, resp)
+		ctx.Fatalf("err=%v||panic=Info[\n%s]", e, string(stack))
+		ctx.SetKV(xContext.ReqStatus, "panic")
+		gc.Abort()
+	} else {
+		ctx.SetKV(xContext.ReqStatus, "success")
+	}
+}
+
+func ResponseOutProcess(gc *gin.Context, ctx *xContext.XContext) {
+	ctx.Fin()
+	ctx.SetKV(xContext.CostMs, ctx.Duration().Milliseconds())
+	ctx.LogTags(ctx.Keys2KVMap(xContext.ReqStatus, xContext.CostMs))
+	ctx.LogFields("resp", "resp_out")
+	parameters := []interface{}{metrics.MetricResponseOut}
+	anyArgs := []interface{}{xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs}
+	_, ok := gc.Get(KeySkipResp)
+	if !ok || !RespBodySkip(gc.Request.URL.Path) { // 20k
+		anyArgs = append(anyArgs, xContext.RespBody)
+	}
+	parameters = append(parameters, ctx.ToAnyArgs(anyArgs...))
+	ctx.Info(parameters...)
+	//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
+	ctx.CounterBy(metrics.MetricDoRequest, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Add(1)
+	// todo code
+	ctx.SummaryBy(metrics.MetricDoRequestCost, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
+}
+func RequestInProcess(gc *gin.Context, ctx *xContext.XContext) {
+	// gc.Set("RequestID", traceID)
+	body, _ := io.ReadAll(gc.Request.Body)
+	bodyStr := string(body)
+	// 写回
+	gc.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+	requestIn := xContext.KVMType{
+		xContext.ClientIP:   gc.ClientIP(),
+		xContext.HttpMethod: gc.Request.Method,
+		xContext.HttpPath:   gc.Request.URL.Path,
+		xContext.ReqBodyLen: len(body),
+		xContext.ReqBody:    bodyStr,
+		xContext.UserAgent:  gc.Request.UserAgent(),
+	}
+	ctx.SetKVs(requestIn)
+	ctx.LogTags(requestIn)
+	parameters := []interface{}{metrics.MetricRequestIn}
+	anyArgs := []interface{}{xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen}
+	_, ok := gc.Get(KeySkipReq)
+	if !ok || !ReqBodySkip(gc.Request.URL.Path) { // 20k
+		anyArgs = append(anyArgs, xContext.ReqBody)
+	}
+	parameters = append(parameters, ctx.ToAnyArgs(anyArgs...))
+	ctx.Info(parameters...)
+	ctx.LogFields("req", "req_in")
+}
+
+func ProcessResponse(gc *gin.Context, ctx *xContext.XContext) {
+	gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
+	httpCode := http.StatusOK
+	httpCodeAny, ok := gc.Get(HttpResponseCode)
+	if ok {
+		code, ok := httpCodeAny.(int)
+		if ok {
+			httpCode = code
+		}
+	}
+	resp, ok := gc.Get(RespJson)
+	if ok {
+		respContentJson := utils.MustJson(resp)
+		ctx.SetKV(xContext.RespBody, respContentJson)
+		gc.JSON(httpCode, resp)
+		return
+	}
+	respBytes, ok := gc.Get(RespBytes)
+	if ok {
+		gc.Writer.Write(respBytes.([]byte))
+		ctx.SetKV(xContext.RespBody, string(respBytes.([]byte)))
+		gc.Status(httpCode)
+		return
+	}
+	respStream, ok := gc.Get(RespStream)
+	if ok {
+		respStreamList, ok1 := respStream.([]string)
+		if ok1 {
+			ctx.SetKV(xContext.RespBody, respStreamList)
+		}
+		gc.Status(httpCode)
+		return
+	}
+	resp = Response{
+		Code:    -1,
+		Message: "no response",
+		Reason:  "",
+	}
+	ctx.SetKV(xContext.RespBody, utils.MustJson(resp))
+	gc.JSON(http.StatusOK, resp)
+}
+
 func DoWsConn(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		traceID := ParseTraceID(gc.GetHeader("trace_id"))
@@ -100,49 +241,13 @@ func DoWsConn(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		for _, gc2xc := range gc2xcList {
 			gc2xc(gc, ctx)
 		}
-		defer func() {
-			ctx.Fin()
-			ctx.SetKV(xContext.CostMs, ctx.Duration().Milliseconds())
-			ctx.LogTags(ctx.Keys2KVMap(xContext.ReqStatus, xContext.CostMs))
-			ctx.LogFields("resp", "resp_out")
-			if RespBodySkip(gc.Request.URL.Path) {
-				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs)...))
-			} else {
-				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs, xContext.RespBody)...))
-			}
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy(metrics.MetricDoRequest, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Add(1)
-			// todo code
-			ctx.SummaryBy(metrics.MetricDoRequestCost, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
-		}()
+		defer ResponseOutProcess(gc, ctx)
 		// gc.Set("RequestID", traceID)
-		body, _ := io.ReadAll(gc.Request.Body)
-		bodyStr := string(body)
-		// 写回
-		gc.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-		requestIn := xContext.KVMType{
-			xContext.ClientIP:   gc.ClientIP(),
-			xContext.HttpMethod: gc.Request.Method,
-			xContext.HttpPath:   gc.Request.URL.Path,
-			xContext.ReqBodyLen: len(body),
-			xContext.ReqBody:    bodyStr,
-			xContext.UserAgent:  gc.Request.UserAgent(),
-		}
-		ctx.SetKVs(requestIn)
-		ctx.LogTags(requestIn)
-		if ReqBodySkip(gc.Request.URL.Path) {
-			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen)...))
-		} else {
-			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen, xContext.ReqBody)...))
-		}
-		ctx.LogFields("req", "req_in")
+		RequestInProcess(gc, ctx)
 		defer func() {
-			if e := recover(); e != any(nil) {
-				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
-				ctx.SetKV(xContext.ReqStatus, "panic")
-			} else {
-				ctx.SetKV(xContext.ReqStatus, "success")
-			}
+			e := recover()
+			stack := debug.Stack()
+			RecoverProcess(gc, ctx, e, stack)
 		}()
 		gc.Set(xContext.XContextKey.String(), ctx)
 		gc.Next()
@@ -169,94 +274,19 @@ func DoRequest(gc2xcList ...GinCtx2XCtx) gin.HandlerFunc {
 		for _, gc2xc := range gc2xcList {
 			gc2xc(gc, ctx)
 		}
+		defer ResponseOutProcess(gc, ctx)
+		RequestInProcess(gc, ctx)
+		// recover
 		defer func() {
-			ctx.Fin()
-			ctx.SetKV(xContext.CostMs, ctx.Duration().Milliseconds())
-			ctx.LogTags(ctx.Keys2KVMap(xContext.ReqStatus, xContext.CostMs))
-			ctx.LogFields("resp", "resp_out")
-			if RespBodySkip(gc.Request.URL.Path) {
-				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs)...))
-
-			} else {
-				ctx.Info(append([]interface{}{metrics.MetricResponseOut}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ReqBodyLen, xContext.ReqStatus, xContext.CostMs, xContext.RespBody)...))
-			}
-			//ctx.Info(ctx.TagNames2PLabels(HttpMethod, HttpPath, ReqStatus))
-			ctx.CounterBy(metrics.MetricDoRequest, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Add(1)
-			// todo code
-			ctx.SummaryBy(metrics.MetricDoRequestCost, ctx.TagNames2PLabels(xContext.HttpMethod, xContext.HttpPath, xContext.ReqStatus)).Observe(float64(ctx.Duration().Milliseconds()))
-		}()
-		// gc.Set("RequestID", traceID)
-		body, _ := io.ReadAll(gc.Request.Body)
-		bodyStr := string(body)
-		// 写回
-		gc.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-		requestIn := xContext.KVMType{
-			xContext.ClientIP:   gc.ClientIP(),
-			xContext.HttpMethod: gc.Request.Method,
-			xContext.HttpPath:   gc.Request.URL.Path,
-			xContext.ReqBodyLen: len(body),
-			xContext.ReqBody:    bodyStr,
-			xContext.UserAgent:  gc.Request.UserAgent(),
-		}
-		ctx.SetKVs(requestIn)
-		ctx.LogTags(requestIn)
-		if ReqBodySkip(gc.Request.URL.Path) { // 20k
-			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen)...))
-		} else {
-			ctx.Info(append([]interface{}{metrics.MetricRequestIn}, ctx.ToAnyArgs(xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen, xContext.ReqBody)...))
-		}
-		ctx.LogFields("req", "req_in")
-		defer func() {
-			if e := recover(); e != any(nil) {
-				resp := Response{
-					Code:    -2,
-					Message: "no response",
-					Reason:  "",
-				}
-				ctx.SetKV(xContext.RespBody, utils.MustJson(resp))
-				gc.JSON(http.StatusOK, resp)
-				ctx.Fatalf("err=%v||panic=Info[\n%s]", e, debug.Stack())
-				ctx.SetKV(xContext.ReqStatus, "panic")
-				gc.Abort()
-			} else {
-				ctx.SetKV(xContext.ReqStatus, "success")
-			}
+			e := recover()
+			stack := debug.Stack()
+			RecoverProcess(gc, ctx, e, stack)
 		}()
 		gc.Set("xContext", ctx)
 		gc.Next()
 		// ctxI, _ := gc.Get("xContext")
 		// ctx = ctxI.(*XContext)
-		gc.Writer.Header().Set("X-Request-Id", fmt.Sprintf("%v", ctx.TraceID()))
-		resp, ok := gc.Get(RespJson)
-		if ok {
-			respContentJson := utils.MustJson(resp)
-			ctx.SetKV(xContext.RespBody, respContentJson)
-			gc.JSON(http.StatusOK, resp)
-			return
-		}
-		respBytes, ok := gc.Get(RespBytes)
-		if ok {
-			gc.Writer.Write(respBytes.([]byte))
-			ctx.SetKV(xContext.RespBody, string(respBytes.([]byte)))
-			gc.Status(http.StatusOK)
-			return
-		}
-		respStream, ok := gc.Get(RespStream)
-		if ok {
-			respStreamList, ok1 := respStream.([]string)
-			if ok1 {
-				ctx.SetKV(xContext.RespBody, respStreamList)
-			}
-			gc.Status(http.StatusOK)
-			return
-		}
-		resp = Response{
-			Code:    -1,
-			Message: "no response",
-			Reason:  "",
-		}
-		ctx.SetKV(xContext.RespBody, utils.MustJson(resp))
-		gc.JSON(http.StatusOK, resp)
+		ProcessResponse(gc, ctx)
 	}
 }
 

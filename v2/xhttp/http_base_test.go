@@ -3,10 +3,11 @@ package xhttp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golib/v2/utils"
-	jsoniter "github.com/json-iterator/go"
 	"strings"
 	"testing"
+
+	"github.com/golib/v2/utils"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func TestName(t *testing.T) {

@@ -49,9 +49,11 @@ const (
 	EventType      XKey = "event_type"
 	EventSystem    XKey = "event_system"
 	EventBody      XKey = "event_body"
-	SpanID              = "span_id"
-	TraceID             = "trace_id"
+	SpanID         XKey = "span_id"
+	TraceID        XKey = "trace_id"
 	XContextKey    XKey = "xContext"
+	KeySkipReq     XKey = "skip_req"
+	KeySkipResp    XKey = "skip_resp"
 )
 
 // 监控 链路跟踪 log

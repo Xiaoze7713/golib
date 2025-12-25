@@ -1,6 +1,9 @@
 package xhttp
 
 import (
+	"bytes"
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/golib/v2/xContext/loggers/xlog"
@@ -61,7 +64,11 @@ func SetResponseWithReason(g *gin.Context, err Error, data interface{}) {
 		RespData: data,
 	}
 	if err != nil {
-		resp.Reason = err.Error()
+		var rErr ReasonError
+		ok := errors.As(err, &rErr)
+		if ok {
+			resp.Reason = err.Reason()
+		}
 	}
 	g.Set(RespJson, resp)
 }
@@ -81,6 +88,11 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 		resp.Reason = err.Error()
 	}
 	g.Set(RespJson, resp)
+}
+
+func SetHttpBodyResponse(g *gin.Context, httpCode int, data interface{}) {
+	g.Set(RespJson, data)
+	g.Set(HttpResponseCode, httpCode)
 }
 
 func SetBytesResponse(g *gin.Context, data []byte) {
@@ -127,34 +139,11 @@ func WriteStreamBytes(g *gin.Context, data []byte, addLine bool) (err error) {
 const DataPrefix = "data: "
 
 func WriteStreamDataBlock(g *gin.Context, data []byte, addLine bool) (err error) {
-	_, err = g.Writer.Write([]byte(DataPrefix))
+	mergeData := bytes.NewBuffer([]byte(DataPrefix))
+	mergeData.Write(data)
+	err = WriteStreamBytes(g, mergeData.Bytes(), addLine)
 	if err != nil {
 		return err
-	}
-	_, err = g.Writer.Write(data)
-	if err != nil {
-		return err
-	}
-	if addLine {
-		_, err2 := g.Writer.WriteString("\n\n")
-		if err2 != nil {
-			return err2
-		}
-	}
-	g.Writer.Flush()
-	stream, ok := g.Get(RespStream)
-	if ok {
-		streamRespList, ok1 := stream.([]string)
-		if ok1 {
-			streamRespList = append(streamRespList, string(data))
-		} else {
-			streamRespList = append([]string{}, string(data))
-		}
-		g.Set(RespStream, streamRespList)
-	}
-	if !ok {
-		streamRespList := append([]string{}, string(data))
-		g.Set(RespStream, streamRespList)
 	}
 	return nil
 }
