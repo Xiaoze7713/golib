@@ -7,11 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golib/v2/xContext"
 	"github.com/BurntSushi/toml"
+	"github.com/golib/v2/xContext"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
+)
+
+const (
+	APITypeDefault    = "default"
+	APITypeByteAPM    = "ByteAPM"
+	APITypeAgentLocal = "AgentLocal"
 )
 
 type JaegerConfig struct {
@@ -22,6 +28,8 @@ type JaegerConfig struct {
 	SamplingUrl   string  `json:"sampling_url" toml:"sampling_url"`
 	User          string  `json:"user" toml:"user"`
 	Passwd        string  `json:"passwd" toml:"passwd"`
+	Type          string  `json:"type" toml:"type"`
+	ApiKey        string  `json:"api_key" toml:"api_key"`
 }
 
 var tracer opentracing.Tracer
@@ -69,12 +77,22 @@ func NewJaegerTrace(jConf *JaegerConfig, options ...jaegercfg.Option) (opentraci
 			},
 			RPCMetrics: false,
 		}
-		if jConf.AgentHostPort != "" {
+		switch jConf.Type {
+		case APITypeAgentLocal:
 			cfg.Reporter.LocalAgentHostPort = jConf.AgentHostPort
-		} else if jConf.EndPoint != "" {
+		case APITypeByteAPM:
 			cfg.Reporter.CollectorEndpoint = jConf.EndPoint
-			cfg.Reporter.User = jConf.User
-			cfg.Reporter.Password = jConf.Passwd
+			if jConf.ApiKey != "" {
+				cfg.Reporter.HTTPHeaders = map[string]string{
+					"X-ByteAPM-AppKey": jConf.ApiKey,
+				}
+			}
+		case APITypeDefault:
+			cfg.Reporter.CollectorEndpoint = jConf.EndPoint
+			if jConf.User != "" {
+				cfg.Reporter.User = jConf.User
+				cfg.Reporter.Password = jConf.Passwd
+			}
 		}
 
 		// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log

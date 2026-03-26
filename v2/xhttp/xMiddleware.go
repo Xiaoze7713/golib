@@ -220,7 +220,7 @@ func ProcessResponse(gc *gin.Context, ctx *xContext.XContext) {
 	if ok {
 		respStreamList, ok1 := respStream.([]string)
 		if ok1 {
-			ctx.SetKV(xContext.RespBody, respStreamList)
+			ctx.SetKV(xContext.RespBody, utils.MustJson(respStreamList))
 		}
 		gc.Status(httpCode)
 		return

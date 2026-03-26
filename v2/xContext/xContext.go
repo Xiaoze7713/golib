@@ -330,7 +330,7 @@ func newXContext(ctx context.Context, operationName string) *XContext {
 func NewXContextWithContext(ctx context.Context, operationName string) *XContext {
 	xCtx := newXContext(ctx, operationName)
 	xCtx.Span = mTrace.StartSpan(operationName,
-		opentracing.StartTime{},
+		opentracing.StartTime(time.Now()),
 	)
 	return xCtx
 }
@@ -338,7 +338,7 @@ func NewXContextWithContext(ctx context.Context, operationName string) *XContext
 func NewXContext(operationName string) *XContext {
 	xCtx := newXContext(context.Background(), operationName)
 	xCtx.Span = mTrace.StartSpan(operationName,
-		opentracing.StartTime{},
+		opentracing.StartTime(time.Now()),
 	)
 	return xCtx
 }
@@ -349,7 +349,7 @@ func NewChildXContext(parent *XContext, operationName string) *XContext {
 	parent.CancelList = append(parent.CancelList, child.CancelCauseFunc)
 	child.Span = mTrace.StartSpan(operationName,
 		opentracing.ChildOf(parent.Span.Context()),
-		opentracing.StartTime{},
+		opentracing.StartTime(time.Now()),
 	)
 	return child
 }
@@ -358,7 +358,7 @@ func NewFollowXContext(spanCtx opentracing.SpanContext, operationName string) *X
 	brother := newXContext(context.Background(), operationName)
 	brother.Span = mTrace.StartSpan(operationName,
 		opentracing.FollowsFrom(spanCtx),
-		opentracing.StartTime{},
+		opentracing.StartTime(time.Now()),
 	)
 	return brother
 }

@@ -52,38 +52,46 @@ func ConvertError(err error) ReasonError {
 	return ReasonError{err.Error(), err}
 }
 
-func SetResponseWithReason(g *gin.Context, err Error, data interface{}) {
+func NewResponse(err error) Response {
 	errorMsg := ""
 	if err != nil {
 		xlog.Error(err)
 		errorMsg = ErrMsg(err)
 	}
 	resp := Response{
-		Code:     ErrorCode(err),
-		Message:  errorMsg,
-		RespData: data,
+		Code:    ErrorCode(err),
+		Message: errorMsg,
 	}
+	return resp
+}
+
+func NewReasonResponse(err Error) Response {
+	resp := NewResponse(err)
 	if err != nil {
 		var rErr ReasonError
 		ok := errors.As(err, &rErr)
 		if ok {
 			resp.Reason = err.Reason()
+		} else {
+			resp.Reason = err.Error()
 		}
 	}
+	return resp
+}
+
+func SetResponseWithReason(g *gin.Context, err Error, data interface{}) {
+	resp := NewReasonResponse(err)
+	resp.RespData = data
 	g.Set(RespJson, resp)
 }
 
+func SetHttpCodeResponseWithReason(g *gin.Context, httpCode int, err Error, data interface{}) {
+	SetResponseWithReason(g, err, data)
+	g.Set(HttpResponseCode, httpCode)
+}
+
 func SetResponse(g *gin.Context, err error, data interface{}) {
-	errorMsg := ""
-	if err != nil {
-		xlog.Error(err)
-		errorMsg = ErrMsg(err)
-	}
-	resp := Response{
-		Code:     ErrorCode(err),
-		Message:  errorMsg,
-		RespData: data,
-	}
+	resp := NewResponse(err)
 	if err != nil {
 		resp.Reason = err.Error()
 	}
@@ -97,6 +105,11 @@ func SetHttpBodyResponse(g *gin.Context, httpCode int, data interface{}) {
 
 func SetBytesResponse(g *gin.Context, data []byte) {
 	g.Set(RespBytes, data)
+}
+
+func SetHttpBytesResponse(g *gin.Context, httpCode int, data []byte) {
+	g.Set(RespBytes, data)
+	g.Set(HttpResponseCode, httpCode)
 }
 
 func SetErrorResponse(g *gin.Context, code int32, msg string) {
