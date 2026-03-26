@@ -95,6 +95,11 @@ func SetResponse(g *gin.Context, err error, data interface{}) {
 	if err != nil {
 		resp.Reason = err.Error()
 	}
+	if data != nil {
+		resp.RespData = data
+	} else {
+		resp.RespData = make(map[string]interface{})
+	}
 	g.Set(RespJson, resp)
 }
 
