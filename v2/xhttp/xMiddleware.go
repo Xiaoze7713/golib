@@ -176,17 +176,17 @@ func RequestInProcess(gc *gin.Context, ctx *xContext.XContext) {
 		xContext.HttpMethod: gc.Request.Method,
 		xContext.HttpPath:   gc.Request.URL.Path,
 		xContext.ReqBodyLen: len(body),
-		xContext.ReqBody:    bodyStr,
 		xContext.UserAgent:  gc.Request.UserAgent(),
 	}
-	ctx.SetKVs(requestIn)
-	ctx.LogTags(requestIn)
 	parameters := []interface{}{metrics.MetricRequestIn}
 	anyArgs := []interface{}{xContext.HttpMethod, xContext.HttpPath, xContext.ClientIP, xContext.ReqBodyLen}
 	_, ok := gc.Get(KeySkipReq)
 	if !ok && !ReqBodySkip(gc.Request.URL.Path) { // 20k
 		anyArgs = append(anyArgs, xContext.ReqBody)
+		requestIn[xContext.ReqBody] = bodyStr
 	}
+	ctx.SetKVs(requestIn)
+	ctx.LogTags(requestIn)
 	parameters = append(parameters, ctx.ToAnyArgs(anyArgs...))
 	ctx.Info(parameters...)
 	ctx.LogFields("req", "req_in")
